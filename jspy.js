@@ -15,18 +15,22 @@ function run() {
 	consume("if")
 	program = parseCondition();
 	console.log(program)
-};
+}
 
 function test() {
 	var inputstring = document.getElementById("input_area").value;
-	// console.log(inputstring);
-	tokenlist = lexer(inputstring);
-	// console.log(tokenlist);
-	nextToken(tokenlist);
-	program = parseStatementList();
-	console.log(programToString(program))
-	execStatementList(program)
-};
+	try {
+		// console.log(inputstring);
+		tokenlist = lexer(inputstring);
+		// console.log(tokenlist);
+		nextToken(tokenlist);
+		program = parseStatementList();
+		// console.log(programToString(program))
+		execStatementList(program)
+	} catch (e) {
+		document.getElementById("output_area").value = e;
+	}
+}
 
 function arrayToString(array) {
 	var str = "[";
@@ -99,7 +103,7 @@ function consume(value) {
 
 function parseFactor() {//<factor> ::= ( <expr> ) | identifier
 	var factor = [];
-	if (currtoken.type == "operator" && currtoken.value == "(";) {
+	if (currtoken.type == "operator" && currtoken.value == "(") {
 		nextToken();
 		factor = parseExpr();
 		consume(")");
