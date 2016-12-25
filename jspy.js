@@ -1,5 +1,5 @@
-var tokenlist = [];
-var currtoken = {
+var tokenList = [];
+var currToken = {
 	type	: 0,
 	value	: 0,
 }
@@ -17,24 +17,22 @@ var funcNum = 0;
 
 function run() {
 	var inputstring = document.getElementById("input_area").value;
-	tokenlist = lexer(inputstring);
-	nextToken(tokenlist);
-	consume("if")
-	program = parseCondition();
-	console.log(program)
+	tokenList = lexer(inputstring);
+	nextToken();
+	console.log(arrayToString(parseFunction()))
 }
 
 function test() {
 	var inputstring = document.getElementById("input_area").value;
 	try {
 		// console.log(inputstring);
-		tokenlist = lexer(inputstring);
-		// console.log(tokenlist);
-		nextToken(tokenlist);
+		tokenList = lexer(inputstring);
+		// console.log(tokenList);
+		nextToken();
 		program = parseStatementList();
 		// console.log(program)
 		console.log(programToString(program))
-		execStatementList(program)
+		// execStatementList(program)
 	} catch (e) {
 		document.getElementById("output_area").value = e;
 	}
@@ -71,37 +69,44 @@ function lexer(inputstring) {//ÔÝÊ±ÒÔ¿Õ°×·ûºÅ·Ö¸î
 
 ///parser
 function nextToken() {
-    // alert(currtoken.value)
-	if (tokenlist.length > 0) {
-		s = tokenlist.shift();
+    // alert(currToken.value)
+	if (tokenList.length > 0) {
+		s = tokenList.shift();
 		if (keywords.indexOf(s) != -1) {
-			currtoken.type = "keyword";
-			currtoken.value = s;
+			currToken.type = "keyword";
+			currToken.value = s;
 		} else if (operators.indexOf(s) != -1) {
-			currtoken.type = "operator";
-			currtoken.value = s;
+			currToken.type = "operator";
+			currToken.value = s;
 		} else if(!isNaN(s)) {
-			currtoken.type = "number";
-			currtoken.value = Number(s);
+			currToken.type = "number";
+			currToken.value = Number(s);
 		} else if (isVaildSymbol(s)) {
             if(funcTable[s]){
-                currtoken.type = "function";
+                currToken.type = "function";
             }
             else{
                 identifierTable[s] = new Array();
-                currtoken.type = "identifier";
+                currToken.type = "identifier";
             }
-            currtoken.value = s;
+            currToken.value = s;
 		} else if (["[", "]"].indexOf(s) != -1){
-			currtoken.type = "list";
-			currtoken.value = s;
+			currToken.type = "list";
+			currToken.value = s;
 		} else {
 			throw new Error("syntax error: '" + s + "'")
 		}
 	} else {
-		currtoken.type = 0;
-		currtoken.value = 0;
+		currToken.type = 0;
+		currToken.value = 0;
 	}
+}
+
+function lookNextToken(cnt) {
+	if (tokenList.length > cnt-1) {
+		return tokenList[cnt-1];
+	}
+	return "";
 }
 
 function isVaildSymbol(s) {
@@ -110,7 +115,7 @@ function isVaildSymbol(s) {
 }
 
 function consume(value) {
-	if (currtoken.value == value) {
+	if (currToken.value == value) {
 		nextToken(); 
 	} else {
 		console.trace();
@@ -122,7 +127,7 @@ function consume(value) {
 function parseFunction(){   //used while calling a function
     var stmt = [];
     stmt.push("function");                  //an identifier - "function"          
-    var function_name = currtoken.value;    //the function name                  
+    var function_name = currToken.value;    //the function name                  
     stmt.push(function_name);
     nextToken();
     consume("(");
@@ -136,25 +141,46 @@ function parseFunction(){   //used while calling a function
     return stmt;
 }
 
-function parseFactor() {//<factor> ::= ( <expr> ) | identifier | number | function
+function parseFactor() {//<factor> ::= ( <expr> ) | identifier | number | function | class.
 	var factor = [];
-	if (currtoken.type == "operator" && currtoken.value == "(") {
+	if (currToken.type == "operator" && currToken.value == "(") {
 		nextToken();
 		factor = parseExpr();
 		consume(")");
-    } else if (currtoken.type == "function"){
-        factor = parseFunction();
-	} else if (["identifier", "number"].indexOf(currtoken.type) != -1) {
-		factor = [currtoken.value];//[]?
+    // } else if (currToken.type == "function"){
+        // factor = parseFunction();
+	} else if (currToken.type == "identifier" || currToken.type == "function") {//"object"|"function"
+		if (currToken.type == "function") {
+			factor = parseFunction();
+		} else {
+			factor = currToken.value;
+			nextToken();
+		}
+		while (currToken.value == ".") {
+			factor = [factor];
+			factor.unshift(".");
+			consume(".");
+			if (currToken.type == "function") {
+				factor.push(parseFunction())// curr="."
+			} else {
+				factor.push(currToken.value);
+				nextToken();
+			}
+		}
+	// } else if (currtoken.type == "identifier") {
+		// factor = [currtoken.value];//[]?
+		// nextToken();
+	} else if (currToken.type == "number") {
+		factor = [currToken.value];//[]?
 		nextToken();
 	}
 	return factor;
 }
 
 function term_tail(left_term) {//<term_tail> ::= */% <factor> <term_tail> | empty
-	if (["*", "/", "%"].indexOf(currtoken.value) != -1) {
+	if (["*", "/", "%"].indexOf(currToken.value) != -1) {
 		left_term = [left_term];
-		left_term.unshift(currtoken.value);
+		left_term.unshift(currToken.value);
 		nextToken();
 		left_term.push(parseFactor());
 		// console.log(arrayToString(left_term))
@@ -169,9 +195,9 @@ function parseTerm() {//<term> ::= <factor> <term_tail>
 }
 
 function expr_tail(left_expr) {//<expr_tail> ::= +- <term> <expr_tail> | empty
-	if (["+", "-"].indexOf(currtoken.value) != -1) {
+	if (["+", "-"].indexOf(currToken.value) != -1) {
 		left_expr = [left_expr]
-		left_expr.unshift(currtoken.value);
+		left_expr.unshift(currToken.value);
 		nextToken();
 		left_expr.push(parseTerm());
 		return expr_tail(left_expr);
@@ -186,12 +212,12 @@ function parseExpr() {//<expr> ::= <term> <expr_tail>
 }
 
 function parseAssignmentStmt() {
-	var stmt = [currtoken.value];
+	var stmt = [currToken.value];
 	nextToken();
 	consume("=");
 	stmt.unshift("=")
-	if (currtoken.type == "list"){
-		// console.log(currtoken.value);
+	if (currToken.type == "list"){
+		// console.log(currToken.value);
 		stmt.push(parseList());
 	}
 	else
@@ -201,12 +227,12 @@ function parseAssignmentStmt() {
 
 function parseList() {
 	var list = [];
-	if (currtoken.type == "list" && currtoken.value == "[") {
+	if (currToken.type == "list" && currToken.value == "[") {
 		list.push("[");
 		nextToken();
 		list.push(parseExpr());
-		while(currtoken.type == "operator"){
-			if (currtoken.value == ",") {
+		while(currToken.type == "operator"){
+			if (currToken.value == ",") {
 				consume(",");
 				list.push(parseExpr());
 			}
@@ -222,20 +248,25 @@ function parseList() {
 function parseStatementList() {
 	var stmts = [];
 	var loop = true;
-	while (currtoken.type != 0 && loop == true) {
+	while (currToken.type != 0 && loop == true) {
 		var stmt = [];
-		switch(currtoken.type) {			
-		case "identifier":// ¸³ÖµÓï¾ä
-            stmt = parseAssignmentStmt();
+		switch(currToken.type) {			
+		case "identifier": case "function":
+			if (lookNextToken(1) == "=")// ¸³ÖµÓï¾ä
+				stmt = parseAssignmentStmt();
+			else if (lookNextToken(1) == "." || lookNextToken(1) == "(")
+				stmt = parseFactor();
+			else 
+				new Error("error in parseStatementList()")
             break;
 		case "number":
 			stmt = parseExpr();
 			break;
-		case "function":        //calling function
-            stmt = parseFunction();
-			break;
+		// case "function":        //calling function
+            // stmt = parseFunction();
+			// break;
 		case "keyword":
-			switch (currtoken.value) {
+			switch (currToken.value) {
 			case "print":
 				consume("print")
 				consume("(")
@@ -250,13 +281,13 @@ function parseStatementList() {
 				stmt.push(parseCondition());
 				consume(":");
 				stmt.push(parseStatementList());
-				while (currtoken.type == "keyword" && currtoken.value == "elif") {
+				while (currToken.type == "keyword" && currToken.value == "elif") {
 					consume("elif");
 					stmt.push(parseCondition());
 					consume(":");
 					stmt.push(parseStatementList())
 				}
-				if (currtoken.type == "keyword" && currtoken.value == "else") {
+				if (currToken.type == "keyword" && currToken.value == "else") {
 					consume("else");
 					stmt.push("else")
 					consume(":");
@@ -275,10 +306,10 @@ function parseStatementList() {
 			case "for":
 				consume("for");
 				stmt = ["for"];
-				if (currtoken.value != ";")
+				if (currToken.value != ";")
 					stmt.push(parseAssignmentStmt());//simple assignment statement. To be modified
 				consume(";")
-				if (currtoken.value != ";")
+				if (currToken.value != ";")
 					stmt.push(parseCondition());
 				consume(";");
 				stmt.push(parseAssignmentStmt());
@@ -288,15 +319,15 @@ function parseStatementList() {
 				break;
             case "def":     //define a function 
                 consume("def");
-                var function_name = currtoken.value;
-                currtoken.type = "function"
+                var function_name = currToken.value;
+                currToken.type = "function"
                 nextToken();  
                 consume("(");
                 funcParams[function_name] = [];
-                while(currtoken.value != ")"){                   
-                    funcParams[function_name].push(currtoken.value) //store the parameters of the function in funcParams[function_name]
+                while(currToken.value != ")"){                   
+                    funcParams[function_name].push(currToken.value) //store the parameters of the function in funcParams[function_name]
                     nextToken();
-                    if(currtoken.value == ","){
+                    if(currToken.value == ","){
                         consume(",")
                     }                  
                 }
@@ -306,7 +337,7 @@ function parseStatementList() {
                 funcTable[function_name] = parseStatementList();    //generate a parse tree of the function and store in funcTable[function_name]
                 // alert(funcTable[function_name])
                 break;
-			case "endif": case "endwhile": case "endfor": case "else": case "elif":
+			case "endif": case "endwhile": case "endfor": case "else": case "elif": case ".":
 				loop = false;
                 break;
             case "return":
@@ -333,14 +364,14 @@ function parseStatementList() {
 
 function parseCondition() {// leftexpr op rightexpr
 	var leftexpr = parseExpr();
-	if (["=", "==", "!=", ">=", "<=", ">", "<"].indexOf(currtoken.value) != -1){
-		ret = [currtoken.value];
+	if (["==", "!=", ">=", "<=", ">", "<"].indexOf(currToken.value) != -1){
+		ret = [currToken.value];
 		ret.push(leftexpr);
 		nextToken();
 		var rightexpr = parseExpr()
 		ret.push(rightexpr);
 	} else {
-		throw new Error("compare statement expected, not '" + currtoken.value + "'");
+		throw new Error("compare statement expected, not '" + currToken.value + "'");
 	}
 	return ret;
 }
