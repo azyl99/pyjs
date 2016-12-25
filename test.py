@@ -90,3 +90,14 @@ def gb ( x , n ) :
     s = 1
     return s 
 a = gb ( b [ gb ( x , y ) ] , z )
+
+# list 现在只能赋值和+ *
+print ( [ ] )
+x = [ ]
+print ( x )
+print ( [ [ 1 / 2 , 100 ] , [ 2 , 3 ] , 3 , 4 ] )
+x = [ 1 , 1 + 1 , [ [ 3 , 4 ] , 5 ] , 6 , 7 ]
+print ( x )
+print ( x + [ 2 ] )
+print ( x * 3 + [ 2 ] * 3 )
+print ( x * 3 * 3 )
