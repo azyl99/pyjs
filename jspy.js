@@ -6,7 +6,7 @@ var currToken = {
 var currFunc = 0;
 var preFunc = 0;
 var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print","def", "return",]
-var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", "."]
+var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]"]
 var identifierTable = new Array();
 var funcTable = [];     //store the parse tree of functions
 var stack = [];
@@ -156,15 +156,25 @@ function parseFactor() {//<factor> ::= ( <expr> ) | identifier | number | functi
 			factor = currToken.value;
 			nextToken();
 		}
-		while (currToken.value == ".") {
-			factor = [factor];
-			factor.unshift(".");
-			consume(".");
-			if (currToken.type == "function") {
-				factor.push(parseFunction())// curr="."
+		while (currToken.value == "." || currToken.value == "[") {
+			if (currToken.value == ".") {
+				factor = [factor];
+				factor.unshift(".");
+				consume(".");
+				if (currToken.type == "function") {//f.g()
+					factor.push(parseFunction())
+				} else {//f.x
+					factor.push(currToken.value);
+					nextToken();
+				}
+			} else if (currToken.value == "[") {
+				factor = [factor];
+				factor.unshift("index");
+				consume("[");
+				factor.push(parseExpr());
+				consume("]");
 			} else {
-				factor.push(currToken.value);
-				nextToken();
+				throw new error("error in parseFactor")
 			}
 		}
 	// } else if (currtoken.type == "identifier") {
@@ -257,7 +267,7 @@ function parseStatementList() {
 			else if (lookNextToken(1) == "." || lookNextToken(1) == "(")
 				stmt = parseFactor();
 			else 
-				new Error("error in parseStatementList()")
+				throw new Error("error in parseStatementList()")
             break;
 		case "number":
 			stmt = parseExpr();
