@@ -6,7 +6,7 @@ var currtoken = {
 var currFunc = 0;
 var preFunc = 0;
 var keywords = ["while", "endwhile", "if", "else", "for", "endfor", "endif", "print","def", "return",]
-var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";"]
+var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", "."]
 var identifierTable = new Array();
 var funcTable = [];     //store the parse tree of functions
 var stack = [];
@@ -32,6 +32,7 @@ function test() {
 		// console.log(tokenlist);
 		nextToken(tokenlist);
 		program = parseStatementList();
+		// console.log(program)
 		// console.log(programToString(program))
 		execStatementList(program)
 	} catch (e) {
@@ -87,7 +88,7 @@ function nextToken() {
                 currtoken.type = "function";
             }
             else{
-                identifierTable[s] = 0;
+                identifierTable[s] = new Array();
                 currtoken.type = "identifier";
             }
             currtoken.value = s;
@@ -104,7 +105,7 @@ function nextToken() {
 }
 
 function isVaildSymbol(s) {
-	var reg= /^[_A-Za-z][A-Za-z0-9]*$/;//单个下划线也可以是合法变量名
+	var reg= /^[_A-Za-z][_A-Za-z0-9]*$/;//单个下划线也可以是合法变量名
 	return reg.test(s)
 }
 
@@ -141,8 +142,7 @@ function parseFactor() {//<factor> ::= ( <expr> ) | identifier | number | functi
 		nextToken();
 		factor = parseExpr();
 		consume(")");
-    }
-    else if (currtoken.type == "function"){
+    } else if (currtoken.type == "function"){
         factor = parseFunction();
 	} else if (["identifier", "number"].indexOf(currtoken.type) != -1) {
 		factor = [currtoken.value];//[]?
@@ -191,14 +191,13 @@ function parseAssignmentStmt() {
 	consume("=");
 	stmt.unshift("=")
 	if (currtoken.type == "list"){
-		console.log(currtoken.value);
+		// console.log(currtoken.value);
 		stmt.push(parseList());
 	}
 	else
 		stmt.push(parseExpr()); 
 	return stmt;
 }
-
 
 function parseList() {
 	var list = [];
@@ -210,7 +209,6 @@ function parseList() {
 			if (currtoken.value == ",") {
 				consume(",");
 				list.push(parseExpr());
-				console.log(list);
 			}
 			else 
 				break;
@@ -218,7 +216,6 @@ function parseList() {
 		list.push("]");
 		consume("]");
 	}
-	console.log("listend");
 	return list;
 }
 
@@ -231,9 +228,11 @@ function parseStatementList() {
 		case "identifier":// 赋值语句
             stmt = parseAssignmentStmt();
             break;
+		case "number":
+			stmt = parseExpr();
+			break;
 		case "function":        //calling function
             stmt = parseFunction();
-            
 			break;
 		case "keyword":
 			switch (currtoken.value) {
@@ -388,12 +387,12 @@ function execExpression(expr) {
 			stack.push(expr[0])
 		else{
             if(currFunc == 0)
-                stack.push(identifierTable[expr[0]])                //use global variables
+                stack.push(identifierTable[expr[0]]["value"])                //use global variables
             else{
                 if(funcVariables[currFunc][expr[0]])
                     stack.push(funcVariables[currFunc][expr[0]]);   //use local variables
                 else
-                    stack.push(identifierTable[expr[0]])             //use global variables in a function
+                    stack.push(identifierTable[expr[0]]["value"])             //use global variables in a function
             }
 			
         }
@@ -405,14 +404,14 @@ function execStatement(stmt) {
 	if (stmt[0] == "=") {
 		execExpression(stmt[2])        
         if(currFunc == 0){                              //get the result as global variable
-            identifierTable[stmt[1][0]] = stack.pop();  //??[1][0]
+            identifierTable[stmt[1][0]]["value"] = stack.pop();  //??[1][0]
         }
         else{
             if(funcVariables[currFunc][stmt[1][0]]){
                 funcVariables[currFunc][stmt[1][0]] = stack.pop();  //get the result as local variable
             }
             else
-                identifierTable[stmt[1][0]] = stack.pop();          //get the result as global variable in a function
+                identifierTable[stmt[1][0]]["value"] = stack.pop();          //get the result as global variable in a function
         }
 	} else if (stmt[0] == "print") {
 		execExpression(stmt[1])
@@ -446,6 +445,8 @@ function execStatement(stmt) {
         execFunc(stmt)
     } else if (stmt[0] == "return"){
         execExpression(stmt[1])
+    } else if (operators.indexOf(stmt[0]) != -1){
+        // console.log("ok")
     } else {
 		throw new Error("Invalid statement");
 	}
