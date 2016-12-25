@@ -82,5 +82,5 @@ print ( b )
 #成员函数
 def pow ( x , n ) :
     s = 1
-    return s
-f . g . pow ( 1 , 2 ) . h
+    return s 
+x = ( 1 + f . g . pow ( 1 , 2 ) . h ) * ( pow ( 1 , 2 ) + 2 )
