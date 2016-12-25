@@ -5,8 +5,8 @@ var currtoken = {
 }
 var currFunc = 0;
 var preFunc = 0;
-var keywords = ["while", "endwhile", "if", "else", "endif", "print","def", "return",]
-var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ","]
+var keywords = ["while", "endwhile", "if", "else", "for", "endfor", "endif", "print","def", "return",]
+var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";"]
 var identifierTable = new Array();
 var funcTable = [];     //store the parse tree of functions
 var stack = [];
@@ -112,6 +112,7 @@ function consume(value) {
 	if (currtoken.value == value) {
 		nextToken(); 
 	} else {
+		console.trace();
 		throw new Error("expected '" + value + "' not found");
 		nextToken();
 	}
@@ -185,18 +186,19 @@ function parseExpr() {//<expr> ::= <term> <expr_tail>
 }
 
 function parseAssignmentStmt() {
-	stmt = [parseIdentifier()];
+	var stmt = [currtoken.value];
+	nextToken();
 	consume("=");
 	stmt.unshift("=")
-	stmt.push(parseExpr());
+	if (currtoken.type == "list"){
+		console.log(currtoken.value);
+		stmt.push(parseList());
+	}
+	else
+		stmt.push(parseExpr()); 
 	return stmt;
 }
 
-function parseIdentifier() {
-	var ret = currtoken.value;
-	nextToken();
-	return ret;
-}
 
 function parseList() {
 	var list = [];
@@ -205,8 +207,7 @@ function parseList() {
 		nextToken();
 		list.push(parseExpr());
 		while(currtoken.type == "operator"){
-			if (currtoken.value == ",") 
-			{
+			if (currtoken.value == ",") {
 				consume(",");
 				list.push(parseExpr());
 				console.log(list);
@@ -228,16 +229,7 @@ function parseStatementList() {
 		var stmt = [];
 		switch(currtoken.type) {			
 		case "identifier":// ¸³ÖµÓï¾ä
-            stmt = [currtoken.value];
-            nextToken();
-            consume("=");  
-            stmt.unshift("=");
-			if (currtoken.type == "list"){
-				console.log(currtoken.value);
-				stmt.push(parseList());
-			}
-			else
-				stmt.push(parseExpr()); 
+            stmt = parseAssignmentStmt();
             break;
 		case "function":        //calling function
             stmt = parseFunction();
@@ -257,6 +249,7 @@ function parseStatementList() {
 				consume("if");
 				stmt = ["if"];
 				stmt.push(parseCondition());
+				consume(":");
 				stmt.push(parseStatementList());
 				if (currtoken.type == "keyword" && currtoken.value == "else") {
 					consume("else");
@@ -268,8 +261,23 @@ function parseStatementList() {
 				consume("while");
 				stmt = ["while"];
 				stmt.push(parseCondition());
+				consume(":");
 				stmt.push(parseStatementList());
 				consume("endwhile")
+				break;
+			case "for":
+				consume("for");
+				stmt = ["for"];
+				if (currtoken.value != ";")
+					stmt.push(parseAssignmentStmt());//simple assignment statement. To be modified
+				consume(";")
+				if (currtoken.value != ";")
+					stmt.push(parseCondition());
+				consume(";");
+				stmt.push(parseAssignmentStmt());
+				consume(":");
+				stmt.push(parseStatementList());
+				consume("endfor");
 				break;
             case "def":     //define a function 
                 consume("def");
@@ -291,7 +299,7 @@ function parseStatementList() {
                 funcTable[function_name] = parseStatementList();    //generate a parse tree of the function and store in funcTable[function_name]
                 // alert(funcTable[function_name])
                 break;
-			case "endif": case "endwhile":
+			case "endif": case "endwhile": case "endfor":
 				loop = false;
                 break;
             case "return":
@@ -324,12 +332,12 @@ function parseCondition() {// leftexpr op rightexpr
 		nextToken();
 		var rightexpr = parseExpr()
 		ret.push(rightexpr);
-		consume(":");
 	} else {
 		throw new Error("compare statement expected, not '" + currtoken.value + "'");
 	}
 	return ret;
 }
+
 
 ///Interpreter
 
@@ -424,6 +432,15 @@ function execStatement(stmt) {
 		while (stack.pop()) {
 			execStatementList(stmt[2]);
 			execCondition(stmt[1]);
+		}
+	} else if (stmt[0] == "for") {//for assign1 cond assign2 stmt
+		execStatement(stmt[1]);
+		execCondition(stmt[2]);
+		while (stack.pop()) {
+			execStatementList(stmt[4]);
+			execStatement(stmt[3]);
+			stack.pop();
+			execCondition(stmt[2]);
 		}
 	} else if(stmt[0] == "function"){
         execFunc(stmt)
