@@ -141,7 +141,7 @@ function parseFunction(){   //used while calling a function
     return stmt;
 }
 
-function parseFactor() {//<factor> ::= ( <expr> ) | identifier | number | function | class.
+function parseFactor() {//<factor> ::= ( <expr> ) | identifier | number | function | class.member | class.method() | arr[expr]
 	var factor = [];
 	if (currToken.type == "operator" && currToken.value == "(") {
 		nextToken();
