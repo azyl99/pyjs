@@ -77,3 +77,10 @@ def fc ( x ) :
     return x
 b = fc ( 9 )
 print ( b )
+
+
+#成员函数
+def pow ( x , n ) :
+    s = 1
+    return s
+f . g . pow ( 1 , 2 ) . h
