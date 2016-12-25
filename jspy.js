@@ -5,7 +5,7 @@ var currtoken = {
 }
 var currFunc = 0;
 var preFunc = 0;
-var keywords = ["while", "endwhile", "if", "else", "for", "endfor", "endif", "print","def", "return",]
+var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print","def", "return",]
 var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", "."]
 var identifierTable = new Array();
 var funcTable = [];     //store the parse tree of functions
@@ -33,7 +33,7 @@ function test() {
 		nextToken(tokenlist);
 		program = parseStatementList();
 		// console.log(program)
-		// console.log(programToString(program))
+		console.log(programToString(program))
 		execStatementList(program)
 	} catch (e) {
 		document.getElementById("output_area").value = e;
@@ -250,9 +250,17 @@ function parseStatementList() {
 				stmt.push(parseCondition());
 				consume(":");
 				stmt.push(parseStatementList());
+				while (currtoken.type == "keyword" && currtoken.value == "elif") {
+					consume("elif");
+					stmt.push(parseCondition());
+					consume(":");
+					stmt.push(parseStatementList())
+				}
 				if (currtoken.type == "keyword" && currtoken.value == "else") {
 					consume("else");
-					stmt.append(parseStatementList())
+					stmt.push("else")
+					consume(":");
+					stmt.push(parseStatementList())
 				}
 				consume("endif");
 				break;
@@ -298,7 +306,7 @@ function parseStatementList() {
                 funcTable[function_name] = parseStatementList();    //generate a parse tree of the function and store in funcTable[function_name]
                 // alert(funcTable[function_name])
                 break;
-			case "endif": case "endwhile": case "endfor":
+			case "endif": case "endwhile": case "endfor": case "else": case "elif":
 				loop = false;
                 break;
             case "return":
@@ -418,14 +426,16 @@ function execStatement(stmt) {
 		outstr = stack.pop();
 		document.getElementById("output_area").value += outstr + "\n";
 		console.info("out:", outstr)
-	} else if (stmt[0] == "if") {//if cond expr1 [expr2]
-		execCondition(stmt[1]);
-		if (stack.pop())
-			execStatementList(stmt[2])
-		else {
-			if (stmt.length == 4)
-				execStatementList(stmt[3])
+	} else if (stmt[0] == "if") {//if cond expr1 [elif expr] [else expr2]
+		var i = 1;
+		execCondition(stmt[i]);
+		while (!stack.pop()) {
+			i = i + 2;
+			if (i == stmt.length - 2)
+				break;
+			execCondition(stmt[i]);
 		}
+		execStatementList(stmt[i+1]);
 	} else if (stmt[0] == "while") {//while cond expr
 		execCondition(stmt[1]);
 		while (stack.pop()) {

@@ -1,9 +1,21 @@
 x = 1
 y = 2 * 3
 
+
+#if-elif-else语句
+x = 4
 if x == 1 :
-  x = 2
+  x = 11
+elif x == 2 :
+  x = 22
+elif x == 3 :
+  x = 33
+else :
+  x = 44
 endif
+print ( x )
+
+
 while x == 2 :
   x = x + 1
   x = x + 1
