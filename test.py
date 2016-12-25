@@ -80,7 +80,13 @@ print ( b )
 
 
 #成员函数
-def pow ( x , n ) :
+def ga ( x , n ) :
     s = 1
     return s 
-x = ( 1 + f . g . pow ( 1 , 2 ) . h ) * ( pow ( 1 , 2 ) + 2 )
+x = ( 1 + obj1 . obj2 . ga ( 1 , 2 ) . t ) * ( ga ( 1 , 2 ) + 2 )
+
+#下标运算符合成员函数的混合调用
+def gb ( x , n ) :
+    s = 1
+    return s 
+a = gb ( b [ gb ( x , y ) ] , z )
