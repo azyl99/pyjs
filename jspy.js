@@ -24,7 +24,7 @@ function run() {
 
 function test() {
 	var inputstring = document.getElementById("input_area").value;
-	try {
+	// try {
 		// console.log(inputstring);
 		tokenList = lexer(inputstring);
 		// console.log(tokenList);
@@ -33,14 +33,14 @@ function test() {
 		// console.log(program)
 		// console.log(programToString(program))
 		execStatementList(program)
-	} catch (e) {
-		document.getElementById("output_area").value = e;
-	}
+	// } catch (e) {
+		// document.getElementById("output_area").value = e;
+	// }
 }
 
 function arrayToString(array) {
 	var str = "[";
-	for (var v = 0; v < array.length; v++) { //var Òª¼ÓÉÏ
+	for (var v = 0; v < array.length; v++) { //var Òªï¿½ï¿½ï¿½ï¿½
 		if (array[v]instanceof Array) {
 			str += arrayToString(array[v]);
 		} else {
@@ -61,7 +61,7 @@ function programToString(program) {
 }
 
 ///lexer
-function lexer(inputstring) { //ÔÝÊ±ÒÔ¿Õ°×·ûºÅ·Ö¸î
+function lexer(inputstring) { //ï¿½ï¿½Ê±ï¿½Ô¿Õ°×·ï¿½ï¿½Å·Ö¸ï¿½
 	return inputstring.split(/\s+/);
 }
 
@@ -107,7 +107,7 @@ function lookNextToken(cnt) {
 }
 
 function isVaildSymbol(s) {
-	var reg = /^[_A-Za-z][_A-Za-z0-9]*$/; //µ¥¸öÏÂ»®ÏßÒ²¿ÉÒÔÊÇºÏ·¨±äÁ¿Ãû
+	var reg = /^[_A-Za-z][_A-Za-z0-9]*$/; //ï¿½ï¿½ï¿½ï¿½ï¿½Â»ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ÇºÏ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	return reg.test(s)
 }
 
@@ -179,7 +179,7 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 			factor = currToken.value;
 			nextToken();
 		}
-		while (currToken.value == "." || currToken.value == "[") {
+		while (currToken.value == "." || currToken.value == "[" ) {
 			if (currToken.value == ".") {
 				factor = [factor];
 				factor.unshift(".");
@@ -246,12 +246,22 @@ function parseExpr() { //<expr> ::= <term> <expr_tail>
 	return expr_tail(term);
 }
 
+// function parseAssignmentStmt() {
+	// var stmt = [currToken.value];
+	// nextToken();
+	// consume("=");
+	// stmt.unshift("=")
+	// stmt.push(parseExpr());
+	// console.log(stmt);
+	// return stmt;
+// }
 function parseAssignmentStmt() {
-	var stmt = [currToken.value];
-	nextToken();
-	consume("=");
-	stmt.unshift("=")
-	stmt.push(parseExpr());
+	var stmt = [parseFactor()];
+	if (currToken.value == "="){
+		consume("=");
+		stmt.unshift("=")
+		stmt.push(parseExpr());
+	}
 	console.log(stmt);
 	return stmt;
 }
@@ -264,12 +274,12 @@ function parseStatementList() {
 		switch (currToken.type) {
 		case "identifier":
 		case "function":
-			if (lookNextToken(1) == "=") // ¸³ÖµÓï¾ä
+			// if (lookNextToken() == "=") // ï¿½ï¿½Öµï¿½ï¿½ï¿?
 				stmt = parseAssignmentStmt();
-			else if (lookNextToken(1) == "." || lookNextToken(1) == "(")
-				stmt = parseFactor();
-			else
-				throw new Error("error in parseStatementList()")
+			// else if (lookNextToken() == "." || lookNextToken() == "(" || lookNextToken() == "[")
+				// stmt = parseFactor();
+			// else
+				// throw new Error("error in parseStatementList()")
 				break;
 		case "number":
 			stmt = parseExpr();
