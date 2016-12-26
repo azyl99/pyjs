@@ -31,7 +31,7 @@ function test() {
 		nextToken();
 		program = parseStatementList();
 		// console.log(program)
-		// console.log(programToString(program))
+		console.log(programToString(program))
 		execStatementList(program)
 	// } catch (e) {
 		// document.getElementById("output_area").value = e;
@@ -246,16 +246,7 @@ function parseExpr() { //<expr> ::= <term> <expr_tail>
 	return expr_tail(term);
 }
 
-// function parseAssignmentStmt() {
-	// var stmt = [currToken.value];
-	// nextToken();
-	// consume("=");
-	// stmt.unshift("=")
-	// stmt.push(parseExpr());
-	// console.log(stmt);
-	// return stmt;
-// }
-function parseAssignmentStmt() {
+function parseSimpleStmt() {
 	var stmt = [parseFactor()];
 	if (currToken.value == "="){
 		consume("=");
@@ -275,7 +266,7 @@ function parseStatementList() {
 		case "identifier":
 		case "function":
 			// if (lookNextToken() == "=") // ï¿½ï¿½Öµï¿½ï¿½ï¿?
-				stmt = parseAssignmentStmt();
+				stmt = parseSimpleStmt();
 			// else if (lookNextToken() == "." || lookNextToken() == "(" || lookNextToken() == "[")
 				// stmt = parseFactor();
 			// else
@@ -284,9 +275,6 @@ function parseStatementList() {
 		case "number":
 			stmt = parseExpr();
 			break;
-			// case "function":        //calling function
-			// stmt = parseFunction();
-			// break;
 		case "keyword":
 			switch (currToken.value) {
 			case "print":
@@ -329,12 +317,12 @@ function parseStatementList() {
 				consume("for");
 				stmt = ["for"];
 				if (currToken.value != ";")
-					stmt.push(parseAssignmentStmt()); //simple assignment statement. To be modified
+					stmt.push(parseSimpleStmt()); //simple assignment statement. To be modified
 				consume(";")
 				if (currToken.value != ";")
 					stmt.push(parseCondition());
 				consume(";");
-				stmt.push(parseAssignmentStmt());
+				stmt.push(parseSimpleStmt());
 				consume(":");
 				stmt.push(parseStatementList());
 				consume("endfor");
