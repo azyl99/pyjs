@@ -24,6 +24,7 @@ function run() {
 
 function test() {
 	var inputstring = document.getElementById("input_area").value;
+	document.getElementById("output_area").value = "";
 	// try {
 		// console.log(inputstring);
 		tokenList = lexer(inputstring);
@@ -129,7 +130,8 @@ function parseFunction() { //used while calling a function
 	nextToken();
 	consume("(");
 	for (var i = 0; i < funcParams[function_name].length; i++) { //transfer the value of params
-		var param_transfer = ["=", funcParams[function_name][i], parseExpr()]
+		// var param_transfer = ["=", funcParams[function_name][i], parseExpr()]
+		var param_transfer = ["=", [funcParams[function_name][i]], parseExpr()]
 		stmt.push(param_transfer)
 		if (i != funcParams[function_name].length - 1)
 			consume(",")
@@ -176,7 +178,7 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 		if (currToken.type == "function") {
 			factor = parseFunction();
 		} else {
-			factor = currToken.value;
+			factor = [currToken.value];
 			nextToken();
 		}
 		while (currToken.value == "." || currToken.value == "[" ) {
@@ -204,7 +206,7 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 		// factor = [currToken.value];//[]?
 		// nextToken();
 	} else if (currToken.type == "number") {
-		factor = currToken.value; //[]?
+		factor = [currToken.value]; //[]?
 		nextToken();
 	} else if (currToken.type == "operator" && currToken.value == "[") {
 		factor = parseList();
@@ -246,14 +248,23 @@ function parseExpr() { //<expr> ::= <term> <expr_tail>
 	return expr_tail(term);
 }
 
-function parseSimpleStmt() {
-	var stmt = [parseFactor()];
+// function parseAssignmentStmt() {
+	// var stmt = [currToken.value];
+	// nextToken();
+	// consume("=");
+	// stmt.unshift("=")
+	// stmt.push(parseExpr());
+	// console.log(stmt);
+	// return stmt;
+// }
+function parseAssignmentStmt() {
+	var stmt = parseFactor();
 	if (currToken.value == "="){
+		stmt = [stmt]
 		consume("=");
 		stmt.unshift("=")
 		stmt.push(parseExpr());
 	}
-	console.log(stmt);
 	return stmt;
 }
 
@@ -265,8 +276,8 @@ function parseStatementList() {
 		switch (currToken.type) {
 		case "identifier":
 		case "function":
-			// if (lookNextToken() == "=") // ��ֵ���?
-				stmt = parseSimpleStmt();
+			// if (lookNextToken() == "=") // ��ֵ���?
+				stmt = parseAssignmentStmt();
 			// else if (lookNextToken() == "." || lookNextToken() == "(" || lookNextToken() == "[")
 				// stmt = parseFactor();
 			// else
@@ -275,6 +286,9 @@ function parseStatementList() {
 		case "number":
 			stmt = parseExpr();
 			break;
+			// case "function":        //calling function
+			// stmt = parseFunction();
+			// break;
 		case "keyword":
 			switch (currToken.value) {
 			case "print":
@@ -317,12 +331,12 @@ function parseStatementList() {
 				consume("for");
 				stmt = ["for"];
 				if (currToken.value != ";")
-					stmt.push(parseSimpleStmt()); //simple assignment statement. To be modified
+					stmt.push(parseAssignmentStmt()); //simple assignment statement. To be modified
 				consume(";")
 				if (currToken.value != ";")
 					stmt.push(parseCondition());
 				consume(";");
-				stmt.push(parseSimpleStmt());
+				stmt.push(parseAssignmentStmt());
 				consume(":");
 				stmt.push(parseStatementList());
 				consume("endfor");
@@ -500,17 +514,22 @@ function execExpression(expr) {
 		execExpression(expr[1]);
 		execExpression(expr[2]);
 		rightOperand = stack.pop()
-		leftOperand = stack.pop()
-		calculate(expr, leftOperand, rightOperand);
-	} else if (!isNaN(expr)) {
-		stack.push(expr);
+			leftOperand = stack.pop()
+			calculate(expr, leftOperand, rightOperand);
 	} else {
-		if (currFunc == 0)
-			stack.push(identifierTable[expr]["value"]) //use global variables
-		else if (funcVariables[currFunc][expr])
-			stack.push(funcVariables[currFunc][expr]); //use local variables
-		else
-			stack.push(identifierTable[expr]["value"]) //use global variables in a function
+		if (!isNaN(expr[0]))
+			stack.push(expr[0]);
+		else {
+			if (currFunc == 0)
+				stack.push(identifierTable[expr[0]]["value"]) //use global variables
+				else {
+					if (funcVariables[currFunc][expr[0]])
+						stack.push(funcVariables[currFunc][expr[0]]); //use local variables
+					else
+						stack.push(identifierTable[expr[0]]["value"]) //use global variables in a function
+				}
+
+		}
 	}
 }
 
@@ -552,12 +571,12 @@ function execStatement(stmt) {
 	if (stmt[0] == "=") {
 		execExpression(stmt[2])
 		if (currFunc == 0) { //get the result as global variable
-			identifierTable[stmt[1]]["value"] = stack.pop(); //??[1][0]
+			identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
 		} else {
-			if (funcVariables[currFunc][stmt[1]]) {
-				funcVariables[currFunc][stmt[1]] = stack.pop(); //get the result as local variable
+			if (funcVariables[currFunc][stmt[1][0]]) {
+				funcVariables[currFunc][stmt[1][0]] = stack.pop(); //get the result as local variable
 			} else
-				identifierTable[stmt[1]]["value"] = stack.pop(); //get the result as global variable in a function
+				identifierTable[stmt[1][0]]["value"] = stack.pop(); //get the result as global variable in a function
 		}
 	} else if (stmt[0] == "print") {
 		execExpression(stmt[1])
