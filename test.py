@@ -18,7 +18,6 @@ print ( x )
 x = 1
 while x == 2 :
   x = x + 1
-  x = x + 1
 endwhile
 print ( x )
 for i = 0 ; i < 5 ; i = i + 1 :
@@ -90,6 +89,7 @@ def gb ( x , n ) :
     s = 1
     return s 
 a = gb ( b [ gb ( x , y ) ] , z )
+print ( a )
 
 # list 现在只能赋值和+ *
 print ( [ ] )

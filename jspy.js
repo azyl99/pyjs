@@ -157,11 +157,11 @@ function expr_list(list) { // <expr_list> ::= <expr> ( "," <expr> )* [","]
 function parseList() { // <list> ::= "[" [<expr_list>] "]"
 	var list = [];
 	if (currToken.type == "operator" && currToken.value == "[") {
-		list.push("[");
+		list.push("list");
 		nextToken();
 		expr_list(list);
 		consume("]");
-		list.push("]");
+		list.push("endlist");
 	}
 	return list;
 }
@@ -506,9 +506,11 @@ function calculate(expr, leftOperand, rightOperand) {
 }
 
 function execExpression(expr) {
-	if (expr[0] == "function") {
+	if (expr instanceof Array && expr.length == 1) {
+		execExpression(expr[0]);
+	} else if (expr[0] == "function") {
 		execFunc(expr)
-	} else if (expr[0] == "[" || expr[expr.length - 1] == "]") {
+	} else if (expr[0] == "list") {
 		execList(expr);
 	} else if (expr.length == 3) {
 		execExpression(expr[1]);
@@ -517,16 +519,16 @@ function execExpression(expr) {
 			leftOperand = stack.pop()
 			calculate(expr, leftOperand, rightOperand);
 	} else {
-		if (!isNaN(expr[0]))
-			stack.push(expr[0]);
+		if (!isNaN(expr))
+			stack.push(expr);
 		else {
 			if (currFunc == 0)
-				stack.push(identifierTable[expr[0]]["value"]) //use global variables
+				stack.push(identifierTable[expr]["value"]) //use global variables
 				else {
-					if (funcVariables[currFunc][expr[0]])
-						stack.push(funcVariables[currFunc][expr[0]]); //use local variables
+					if (funcVariables[currFunc][expr])
+						stack.push(funcVariables[currFunc][expr]); //use local variables
 					else
-						stack.push(identifierTable[expr[0]]["value"]) //use global variables in a function
+						stack.push(identifierTable[expr]["value"]) //use global variables in a function
 				}
 
 		}
@@ -581,15 +583,17 @@ function execStatement(stmt) {
 	} else if (stmt[0] == "print") {
 		execExpression(stmt[1])
 		outstr = stack.pop();
-		execPrint(outstr);
-		document.getElementById("output_area").value += "\n";
+		// execPrint(outstr);
+		document.getElementById("output_area").value += outstr + "\n";
 		// console.info("out:", outstr);
 	} else if (stmt[0] == "if") { //if cond expr1 [elif expr] [else expr2]
 		var i = 1;
 		execCondition(stmt[i]);
 		while (!stack.pop()) {
 			i = i + 2;
-			if (i == stmt.length - 2)
+			if (i >= stmt.length)// has no 'else'
+				return;
+			if (stmt[i] == "else")
 				break;
 			execCondition(stmt[i]);
 		}
