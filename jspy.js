@@ -204,7 +204,7 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 		// factor = [currToken.value];//[]?
 		// nextToken();
 	} else if (currToken.type == "number") {
-		factor = [currToken.value]; //[]?
+		factor = currToken.value; //[]?
 		nextToken();
 	} else if (currToken.type == "operator" && currToken.value == "[") {
 		factor = parseList();
@@ -500,22 +500,17 @@ function execExpression(expr) {
 		execExpression(expr[1]);
 		execExpression(expr[2]);
 		rightOperand = stack.pop()
-			leftOperand = stack.pop()
-			calculate(expr, leftOperand, rightOperand);
+		leftOperand = stack.pop()
+		calculate(expr, leftOperand, rightOperand);
+	} else if (!isNaN(expr)) {
+		stack.push(expr);
 	} else {
-		if (!isNaN(expr[0]))
-			stack.push(expr[0]);
-		else {
-			if (currFunc == 0)
-				stack.push(identifierTable[expr[0]]["value"]) //use global variables
-				else {
-					if (funcVariables[currFunc][expr[0]])
-						stack.push(funcVariables[currFunc][expr[0]]); //use local variables
-					else
-						stack.push(identifierTable[expr[0]]["value"]) //use global variables in a function
-				}
-
-		}
+		if (currFunc == 0)
+			stack.push(identifierTable[expr]["value"]) //use global variables
+		else if (funcVariables[currFunc][expr])
+			stack.push(funcVariables[currFunc][expr]); //use local variables
+		else
+			stack.push(identifierTable[expr]["value"]) //use global variables in a function
 	}
 }
 
@@ -557,12 +552,12 @@ function execStatement(stmt) {
 	if (stmt[0] == "=") {
 		execExpression(stmt[2])
 		if (currFunc == 0) { //get the result as global variable
-			identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
+			identifierTable[stmt[1]]["value"] = stack.pop(); //??[1][0]
 		} else {
-			if (funcVariables[currFunc][stmt[1][0]]) {
-				funcVariables[currFunc][stmt[1][0]] = stack.pop(); //get the result as local variable
+			if (funcVariables[currFunc][stmt[1]]) {
+				funcVariables[currFunc][stmt[1]] = stack.pop(); //get the result as local variable
 			} else
-				identifierTable[stmt[1][0]]["value"] = stack.pop(); //get the result as global variable in a function
+				identifierTable[stmt[1]]["value"] = stack.pop(); //get the result as global variable in a function
 		}
 	} else if (stmt[0] == "print") {
 		execExpression(stmt[1])
