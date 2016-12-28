@@ -5,7 +5,7 @@ var currToken = {
 }
 var currFunc = 0;
 var preFunc = 0;
-var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print", "def", "return", ]
+var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print", "def", "return", "break", "continue"]
 var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]"]
 var identifierTable = new Array();
 var funcTable = []; //store the parse tree of functions
@@ -341,6 +341,14 @@ function parseStatementList() {
 				stmt.push(parseStatementList());
 				consume("endfor");
 				break;
+			case "continue":
+				consume("continue");
+				stmt = ["continue"];
+				break;
+			case "break":
+				consume("break");
+				stmt = ["break"];
+				break;
 			case "def": //define a function
 				consume("def");
 				var function_name = currToken.value;
@@ -569,6 +577,7 @@ function execPrint(str) {
 }
 
 function execStatement(stmt) {
+	var loopStatus = "normal";
 	// switch(stmt[0])
 	if (stmt[0] == "=") {
 		execExpression(stmt[2])
@@ -592,23 +601,27 @@ function execStatement(stmt) {
 		while (!stack.pop()) {
 			i = i + 2;
 			if (i >= stmt.length)// has no 'else'
-				return;
+				return loopStatus;
 			if (stmt[i] == "else")
 				break;
 			execCondition(stmt[i]);
 		}
-		execStatementList(stmt[i + 1]);
+		loopStatus = execStatementList(stmt[i + 1]);
 	} else if (stmt[0] == "while") { //while cond expr
 		execCondition(stmt[1]);
 		while (stack.pop()) {
-			execStatementList(stmt[2]);
+			loopStatus = execStatementList(stmt[2]);
+			if (loopStatus == "break")
+				return loopStatus;
 			execCondition(stmt[1]);
 		}
 	} else if (stmt[0] == "for") { //for assign1 cond assign2 stmt
 		execStatement(stmt[1]);
 		execCondition(stmt[2]);
 		while (stack.pop()) {
-			execStatementList(stmt[4]);
+			loopStatus = execStatementList(stmt[4]);
+			if (loopStatus == "break")
+				return loopStatus;
 			execStatement(stmt[3]);
 			stack.pop();
 			execCondition(stmt[2]);
@@ -617,17 +630,32 @@ function execStatement(stmt) {
 		execFunc(stmt)
 	} else if (stmt[0] == "return") {
 		execExpression(stmt[1])
+	} else if (stmt[0] == "continue") {
+		loopStatus = "continue";
+	} else if (stmt[0] == "break") {
+		loopStatus = "break";
 	} else if (operators.indexOf(stmt[0]) != -1) {
 		// console.log("ok")
 	} else {
 		throw new Error("Invalid statement");
 	}
+	return loopStatus;
 }
 
 function execStatementList(program) {
+	var loopStatus = "normal";
 	for (var i = 0; i < program.length; i++) {
-		execStatement(program[i]);
+		loopStatus = execStatement(program[i]);
+		if (loopStatus == "break" && (program[i][0] == "while" || program[i][0] == "for")){
+			loopStatus = "normal";//reset the loopStatus
+			continue;// break to execute next statement after "while" or "for"
+		} else if (loopStatus == "continue" && program[i][0] == "if") {
+			return "normal";//execute the statement in first line of "whlie" or "for" normally
+		} else if (loopStatus == "continue" || loopStatus == "break") {
+			return loopStatus;
+		}
 	}
+	return "normal";
 }
 
 function execCondition(cond) {

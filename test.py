@@ -16,14 +16,75 @@ endif
 print ( x )
 
 x = 1
-while x == 2 :
-  x = x + 1
+while x == 1 :
+  if x == 2 :
+    x = x + 1
+  endif
 endwhile
 print ( x )
+
+#for
 for i = 0 ; i < 5 ; i = i + 1 :
   x = x + 1
 endfor
 print ( x )
+
+#while里面嵌套if
+x = 1
+while x < 10 :
+  if x == 1 :
+    x = x + 2
+    print ( x )
+    continue
+  elif x == 3 :
+    x = x + 5
+    print ( x )
+  else : 
+    x = -1
+    print ( x )
+    break
+  endif
+  x = x + 1
+  print ( x )
+endwhile
+
+#for里面嵌套if
+for x = 1 ; x < 10 ; x = x :
+  if x == 1 :
+    x = x + 2
+    print ( x )
+    continue
+  elif x == 3 :
+    x = x + 5
+    print ( x )
+  else : 
+    x = -1
+    print ( x )
+    break
+  endif
+  x = x + 1
+  print ( x )
+endfor
+
+#双重嵌套的continue和break
+x = 2
+while x < 5 :
+  for i = 0 ; i < 4 ; i = i + 1 :
+    if i < x :
+      continue
+    endif
+    y = i
+    print ( y )
+    break
+  endfor
+  x = x + 1
+  print ( x )
+  if x == 4 :
+    break
+  endif
+endwhile
+
+
 
 #函数一定要有返回值
 
