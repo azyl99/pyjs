@@ -14,7 +14,7 @@ var operator=["<=",">=","==","!=","&&","||","+=","-=","*=","/="];
 var TokenType=["spli","oper","single","num","str"];
 var indentKey=["if","while","for","def","class"];
 
-function lexer(inputString) {//对程序进行词法分析，生成tokenlist
+function lexer(inputString) {//对程序进行词法分析，生成tokenList
     var handleString = addSplit(inputString);  //为某一个token加上间隔符；
     var testString = "";
     var testLinesNum;
@@ -28,7 +28,7 @@ function lexer(inputString) {//对程序进行词法分析，生成tokenlist
     linesIndex = 0;
     indent([0,0],[-1,-1]);
     testLinesNum=lines.length;
-    tokenlist = [];
+    tokenList = [];
     for(linesIndex = 0; linesIndex<testLinesNum; linesIndex++){
         lineContent = lines[linesIndex];
         currentToken[0]="";
@@ -36,21 +36,21 @@ function lexer(inputString) {//对程序进行词法分析，生成tokenlist
         for(i = 0; i<lineContent.length; i++){
             if(splitChar.test(lineContent[i]) && strSign == 0){
                 if(currentToken[0] != ""){
-                    tokenlist.push([currentToken[0],currentToken[1]]);
+                    tokenList.push([currentToken[0],currentToken[1]]);
                     currentToken[0]="";
                 }
             }
             else if(lineContent[i] == '\'' || lineContent[i] == '\"' && strSign ==0){
                 if(currentToken[0] != ""){
-                    tokenlist.push([currentToken[0],currentToken[1]]);
+                    tokenList.push([currentToken[0],currentToken[1]]);
                 }
                 currentToken[0] = lineContent[i];
-                tokenlist.push([currentToken[0],currentToken[1]]);
+                tokenList.push([currentToken[0],currentToken[1]]);
                 currentToken[0]="";
                 strSign = 1;
             }
             else if(lineContent[i] == '\'' || lineContent[i] == '\"' && strSign ==1){
-                tokenlist.push([currentToken[0],currentToken[1]]);
+                tokenList.push([currentToken[0],currentToken[1]]);
                 currentToken[0] = lineContent[i];
                 strSign = 0;
             }
@@ -59,7 +59,7 @@ function lexer(inputString) {//对程序进行词法分析，生成tokenlist
             }
         }
         if(currentToken[0]!=""){
-            tokenlist.push([currentToken[0],currentToken[1]]);
+            tokenList.push([currentToken[0],currentToken[1]]);
         }
     }
 }
