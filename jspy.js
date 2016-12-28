@@ -154,14 +154,13 @@ function expr_list(list) { // <expr_list> ::= <expr> ( "," <expr> )* [","]
 	}
 }
 
-function parseList() { // <list> ::= "[" [<expr_list>] "]"
+function parseList() { // <list> ::= "list" [<expr_list>]
 	var list = [];
 	if (currToken.type == "operator" && currToken.value == "[") {
 		list.push("list");
 		nextToken();
 		expr_list(list);
 		consume("]");
-		list.push("endlist");
 	}
 	return list;
 }
@@ -248,15 +247,6 @@ function parseExpr() { //<expr> ::= <term> <expr_tail>
 	return expr_tail(term);
 }
 
-// function parseAssignmentStmt() {
-	// var stmt = [currToken.value];
-	// nextToken();
-	// consume("=");
-	// stmt.unshift("=")
-	// stmt.push(parseExpr());
-	// console.log(stmt);
-	// return stmt;
-// }
 function parseAssignmentStmt() {
 	var stmt = parseFactor();
 	if (currToken.value == "="){
@@ -427,11 +417,11 @@ function execFunc(stmt) {
 	currFunc = funcCallStack[0] ? funcCallStack[0] : 0;
 }
 
-function execList(stmt) { // like "[" [+ 1 2] ["[" 2 3 "]"] [+ 3 4] "]"
+function execList(stmt) { // like "list" [+ 1 2] ["list" 2 3 ] [+ 3 4]
 	var list = [];
 	var item = [];
 	if (!(stmt.length == 3 && stmt[1].length == 0)) {
-		for (var i = 1; i < stmt.length - 1; i++) {
+		for (var i = 1; i < stmt.length; i++) {
 			execExpression(stmt[i]);
 			list.push(stack.pop());
 		}
@@ -535,37 +525,41 @@ function execExpression(expr) {
 	}
 }
 
-function execPrintList(str) {
-	if (str.length > 1) {
-		for (var i = 0; i < str.length - 1; i++) {
-			if (str[i]instanceof Array) {
-				document.getElementById("output_area").value += "[";
-				execPrintList(str[i]);
-				document.getElementById("output_area").value += "], ";
+function execPrintList(out) {
+	var outStrItem = "";
+	if (out.length > 1) {
+		for (var i = 0; i < out.length - 1; i++) {
+			if (out[i] instanceof Array) {
+				outStrItem += "[";
+				outStrItem += execPrintList(out[i]);
+				outStrItem += "],";
 			} else {
-				document.getElementById("output_area").value += str[i] + ", ";
+				outStrItem += out[i] + ", ";
 			}
 		}
-		if (str[str.length - 1]instanceof Array) {
-			document.getElementById("output_area").value += "[";
-			execPrintList(str[i]);
-			document.getElementById("output_area").value += "]";
+		if (out[out.length - 1]instanceof Array) {
+			outStrItem += "[";
+			outStrItem += execPrintList(out[i], outStr);
+			outStrItem += "]";
 		} else {
-			document.getElementById("output_area").value += str[i];
+			outStrItem += out[i];
 		}
 	} else {
-		document.getElementById("output_area").value += str;
+		outStrItem += out;
 	}
+	return outStrItem;
 }
 
-function execPrint(str) {
-	if (str instanceof Array) {
-		document.getElementById("output_area").value += "[";
+function execPrint(out) {
+	var outStr = "";
+	if (out instanceof Array) {
+		outStr+="["
 	}
-	execPrintList(str);
-	if (str instanceof Array) {
-		document.getElementById("output_area").value += "]";
+	outStr += execPrintList(out);
+	if (out instanceof Array) {
+		outStr+="]";
 	}
+	return outStr;
 }
 
 function execStatement(stmt) {
@@ -582,8 +576,8 @@ function execStatement(stmt) {
 		}
 	} else if (stmt[0] == "print") {
 		execExpression(stmt[1])
-		outstr = stack.pop();
-		// execPrint(outstr);
+		out = stack.pop();
+		outstr = execPrint(out);
 		document.getElementById("output_area").value += outstr + "\n";
 		// console.info("out:", outstr);
 	} else if (stmt[0] == "if") { //if cond expr1 [elif expr] [else expr2]
