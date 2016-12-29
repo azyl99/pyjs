@@ -42,7 +42,7 @@ while x < 10 :
     x = x + 5
     print ( x )
   else : 
-    x = -1
+    x = -10
     print ( x )
     break
   endif
@@ -158,10 +158,10 @@ print ( a )
 print ( [ ] )
 x = [ ]
 print ( x )
-print ( [ [ 1 / 2 , 100 ] , [ 2 , 3 ] , 3 , 4 ] )
-x = [ 1 , 1 + 1 , [ [ 3 , 4 ] , 5 ] , 6 , 7 ]
+print ( [ [ 1 / 2 , 100 ] , ( 2 , 3 ) , { 4 : 5 } , 4 ] )
+x = [ [ 1 / 2 , 100 ] , ( 2 , 3 ) , { 4 : 5 , 6 : 7 } , 4 ]
 print ( x )
-print ( x + [ 2 ] )
+print ( ( x + [ 2 ] ) * 2 )
 print ( x * 3 + [ 2 ] * 3 )
 print ( x * 3 * 3 )
 
@@ -171,7 +171,16 @@ print ( x )
 x [ 1 + 1 ] = 10 / 20 - 2
 print ( x )
 
-# tuple
-y = ( 1 , 2 , ( 3 , ) , [ 1 , 2 , 3 , 4 ] )
+# tuple 对内部数据赋值报错
+y = ( 1 , { 2 : 2 } , ( 3 , ) , [ 1 , 2 , 3 , 4 ] )
 print ( y )
 print ( y [ 3 ] )
+
+# dict
+x = { 1 : [ 1 , { 2 : 3 } ] , 3 : ( 3 , 4 ) }
+print ( x )
+y = { }
+print ( y )
+print ( x [ 1 ] )
+x [ 1 ] = 0
+print ( x )
