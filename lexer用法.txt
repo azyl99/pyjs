@@ -1,0 +1,8 @@
+/**
+ *lexer支持test.py里的所有程序
+ *if for while def class 结束后末尾会添上如end+if
+ *tokenlist里元素为二元数组，数组元素是值和行号
+ *lexer函数运行完毕tokenlist即被赋值,调用时只需lexer(inputString)即可
+ *数字负数、小数均支持（类调用时'.'会分隔出来成为一个单独的token）
+ *字符串目前只支持''和"",尚未支持多行字符串，字符串的内容里不可出现单引号和双引号，此外一切均支持，包括转义字符
+ *  */
