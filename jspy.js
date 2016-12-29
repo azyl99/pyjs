@@ -181,9 +181,11 @@ function parseDict() { // [= [x] [dict [1] [2] [3] [4]]]
 	if (currToken.type == "operator" && currToken.value == "{") {
 		dict.push("dict");
 		nextToken();
-		dict.push(parseExpr());
-		consume(":");
-		dict.push(parseExpr());
+		if (currToken.value != "}"){ //gmy4
+			dict.push(parseExpr());
+			consume(":");
+			dict.push(parseExpr());
+		}
 		while (currToken.type == "operator" && currToken.value != "}") {
 			if (currToken.value == ",") {
 				consume(",");
@@ -478,7 +480,6 @@ function addType(id, type) {
 
 function execList(stmt) { // list [1] [2] [3] [4]
 	var list = [];
-	var item = [];
 	for (var i = 1; i < stmt.length; i++) {
 		execExpression(stmt[i]);
 		list.push(stack.pop());
@@ -489,13 +490,26 @@ function execList(stmt) { // list [1] [2] [3] [4]
 
 function execTuple(stmt) { // tuple [1] [2] [3] [4]
 	var tuple = [];
-	var item = [];
 	for (var i = 1; i < stmt.length; i++) {
 		execExpression(stmt[i]);
 		tuple.push(stack.pop());
 	}
 	addType(tuple, "tuple");
 	stack.push(tuple);
+}
+
+function execDict(stmt){ // dict [1] [2] [3] [4]  gmy2
+	var dict = {};
+	for (var i = 1; i < stmt.length; i=i+2) {
+		execExpression(stmt[i]);
+		execExpression(stmt[i+1]);
+		// dict.push(stack.pop());
+		var value = stack.pop();
+		var key = stack.pop();
+		dict[key] = value;
+	}
+	addType(dict, "dict");
+	stack.push(dict);
 }
 
 function calculate(expr, leftOperand, rightOperand) {
@@ -573,7 +587,7 @@ function calculate(expr, leftOperand, rightOperand) {
 }
 
 function execExpression(expr) {
-	if (expr instanceof Array && expr.length == 1) {
+	if (expr instanceof Array && expr.length == 1 && expr[0] != "dict") { //gmy5
 		execExpression(expr[0]);
 	} else if (expr[0] == "function") {
 		execFunc(expr)
@@ -610,6 +624,8 @@ function execAssignment(stmt) {
 	execExpression(stmt[2]);
 	if (currFunc == 0) { //get the result as global variable
 		if (stmt[1][0] == "index") { // index x 0
+			if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")  // gmy1 2行
+				throw new Error("'tuple' object does not support item assignment");
 			execExpression(stmt[1][2]);
 			var index = stack.pop();
 			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
@@ -647,17 +663,24 @@ function execPrintItem(out) {
 	var outStrItem = "";
 	if (out.length > 1) {
 		for (var i = 0; i < out.length - 1; i++) {
-			if (out[i]instanceof Array) {
-				outStrItem += execPrintEnclosureLeft(out[i]["type"]) + execPrintItem(out[i]) + execPrintEnclosureRight(out[i]["type"]) + ", ";
+			if (out[i] instanceof Object) {
+				if (out[i] instanceof Array)
+					outStrItem += execPrint(out[i])+ ", ";
+				else
+					outStrItem += execPrint(out[i])+ ", ";
 			} else {
 				outStrItem += out[i] + ", ";
 			}
 		}
-		if (out[out.length - 1]instanceof Array) {
-			outStrItem += execPrintEnclosureLeft(out[i]["type"]) + execPrintItem(out[i]) + execPrintEnclosureRight(out[i]["type"]);
+		if (out[out.length - 1] instanceof Array) {
+			outStrItem += execPrint(out[i]);
+		} else if (out[i] instanceof Object){
+			outStrItem += execPrint(out[i]);
 		} else {
-			outStrItem += out[i];
+				outStrItem += out[i];
 		}
+	} else if (out[0] instanceof Object){
+		outStrItem += execPrint(out[0]);
 	} else {
 		outStrItem += out;
 	}
@@ -688,13 +711,25 @@ function execPrintEnclosureRight(type) { // list tuple dict 右符号
 	}
 }
 
-function execPrint(out) {
+function execPrint(out) { // gmy 3
 	var outStr = "";
-	if (out instanceof Array)
+	if (out.constructor == Object){  // [] instanceof array和object 都是true, 用constructor区分
 		outStr += execPrintEnclosureLeft(out["type"]);
-	outStr += execPrintItem(out);
-	if (out instanceof Array)
+		// outStr += execPrintDict(out);
+		for (var i in out){
+			if (i != "type")
+				outStr += i + ":" + execPrint(out[i]) + ", "
+		}
+		if (outStr.length>2)
+			outStr = outStr.substring(0,outStr.length-2);
 		outStr += execPrintEnclosureRight(out["type"]);
+	} else { 
+		if (out instanceof Array)
+			outStr += execPrintEnclosureLeft(out["type"]);
+		outStr += execPrintItem(out);
+		if (out instanceof Array)
+			outStr += execPrintEnclosureRight(out["type"]);
+	}
 	return outStr;
 }
 
