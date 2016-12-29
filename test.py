@@ -20,10 +20,12 @@ while x == 1 :
   if x == 2 :
     x = x + 1
   endif
+  x = 10
 endwhile
 print ( x )
 
 #for
+x = 1
 for i = 0 ; i < 5 ; i = i + 1 :
   x = x + 1
 endfor
@@ -98,9 +100,9 @@ def pow ( x , n ) :
     
 print ( pow ( 2 , 3 ) )
 
-##全局变量 & 局部变量
-x = 1
-y = 2
+##全局变量 & 局部变量 我换成list
+x = [ 1 , 2 ]
+y = [ 3 , 4 ]
 def fa ( x ) :
     print ( x )
     print ( y )
@@ -152,7 +154,7 @@ def gb ( x , n ) :
 a = gb ( b [ gb ( x , y ) ] , z )
 print ( a )
 
-# list 现在只能赋值和+ *
+# list 赋值和+ *
 print ( [ ] )
 x = [ ]
 print ( x )
@@ -162,3 +164,14 @@ print ( x )
 print ( x + [ 2 ] )
 print ( x * 3 + [ 2 ] * 3 )
 print ( x * 3 * 3 )
+
+# list 取下表，越界报错
+x = [ 1 , [ 2 , [ 3 , 4 , 5 ] ] , [ 6 , 7 ] ]
+print ( x )
+x [ 1 + 1 ] = 10 / 20 - 2
+print ( x )
+
+# tuple
+y = ( 1 , 2 , ( 3 , ) , [ 1 , 2 , 3 , 4 ] )
+print ( y )
+print ( y [ 3 ] )

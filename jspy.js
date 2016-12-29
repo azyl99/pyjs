@@ -6,7 +6,7 @@ var currToken = {
 var currFunc = 0;
 var preFunc = 0;
 var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print", "def", "return", "break", "continue"]
-var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]"]
+var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]", "{", "}"]
 var identifierTable = new Array();
 var funcTable = []; //store the parse tree of functions
 var stack = [];
@@ -26,16 +26,16 @@ function test() {
 	var inputstring = document.getElementById("input_area").value;
 	document.getElementById("output_area").value = "";
 	// try {
-		// console.log(inputstring);
-		tokenList = lexer(inputstring);
-		// console.log(tokenList);
-		nextToken();
-		program = parseStatementList();
-		// console.log(program)
-		console.log(programToString(program))
-		execStatementList(program)
+	// console.log(inputstring);
+	tokenList = lexer(inputstring);
+	// console.log(tokenList);
+	nextToken();
+	program = parseStatementList();
+	// console.log(program)
+	console.log(programToString(program))
+	execStatementList(program)
 	// } catch (e) {
-		// document.getElementById("output_area").value = e;
+	// document.getElementById("output_area").value = e;
 	// }
 }
 
@@ -62,7 +62,8 @@ function programToString(program) {
 }
 
 ///lexer
-function lexer(inputstring) { //��ʱ�Կհ׷��ŷָ�
+function lexer(inputstring) {
+	var i = 1;
 	return inputstring.split(/\s+/);
 }
 
@@ -88,9 +89,6 @@ function nextToken() {
 				currToken.type = "identifier";
 			}
 			currToken.value = s;
-		} else if (["[", "]"].indexOf(s) != -1) {
-			currToken.type = "list";
-			currToken.value = s;
 		} else {
 			throw new Error("syntax error: '" + s + "'")
 		}
@@ -108,7 +106,7 @@ function lookNextToken(cnt) {
 }
 
 function isVaildSymbol(s) {
-	var reg = /^[_A-Za-z][_A-Za-z0-9]*$/; //�����»���Ҳ�����ǺϷ�������
+	var reg = /^[_A-Za-z][_A-Za-z0-9]*$/;
 	return reg.test(s)
 }
 
@@ -140,29 +138,67 @@ function parseFunction() { //used while calling a function
 	return stmt;
 }
 
-function expr_list(list) { // <expr_list> ::= <expr> ( "," <expr> )* [","]
-	list.push(parseExpr());
-	while (currToken.type == "operator" && currToken.value != "]") {
-		if (currToken.value == ",") {
-			consume(",");
-			if (currToken.type == "operator" && currToken.value == "]")
-				break;
-			list.push(parseExpr());
-		} else {
-			throw new Error("list syntax error: '" + currToken.value + "'");
-		}
-	}
-}
-
 function parseList() { // <list> ::= "list" [<expr_list>]
 	var list = [];
 	if (currToken.type == "operator" && currToken.value == "[") {
 		list.push("list");
 		nextToken();
-		expr_list(list);
+		list.push(parseExpr());
+		while (currToken.type == "operator" && currToken.value != "]") {
+			if (currToken.value == ",") {
+				consume(",");
+				if (currToken.type == "operator" && currToken.value == "]")
+					break;
+				list.push(parseExpr());
+			} else {
+				throw new Error("list syntax error: '" + currToken.value + "'");
+			}
+		}
 		consume("]");
 	}
 	return list;
+}
+
+function parseTuple(FirstTupleItem) { //[= [x] [tuple [1] [2] [3] [4]]]
+	var tuple = [];
+	tuple.push("tuple");
+	tuple.push(FirstTupleItem);
+	while (currToken.type == "operator" && currToken.value != ")") {
+		if (currToken.value == ",") {
+			consume(",");
+			if (currToken.type == "operator" && currToken.value == ")")
+				break;
+			tuple.push(parseExpr());
+		} else {
+			throw new Error("tuple syntax error: '" + currToken.value + "'");
+		}
+	}
+	return tuple;
+}
+
+function parseDict() { // [= [x] [dict [1] [2] [3] [4]]]
+	var dict = [];
+	if (currToken.type == "operator" && currToken.value == "{") {
+		dict.push("dict");
+		nextToken();
+		dict.push(parseExpr());
+		consume(":");
+		dict.push(parseExpr());
+		while (currToken.type == "operator" && currToken.value != "}") {
+			if (currToken.value == ",") {
+				consume(",");
+				if (currToken.type == "operator" && currToken.value == "}")
+					break;
+				dict.push(parseExpr());
+				consume(":");
+				dict.push(parseExpr());
+			} else {
+				throw new Error("dict syntax error: '" + currToken.value + "'");
+			}
+		}
+		consume("}");
+	}
+	return dict;
 }
 
 function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | function | class.member | class.method() | arr[expr]
@@ -170,6 +206,8 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 	if (currToken.type == "operator" && currToken.value == "(") {
 		nextToken();
 		factor = parseExpr();
+		if (currToken.type == "operator" && currToken.value == ",")
+			factor = parseTuple(factor);
 		consume(")");
 		// } else if (currToken.type == "function"){
 		// factor = parseFunction();
@@ -180,7 +218,7 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 			factor = [currToken.value];
 			nextToken();
 		}
-		while (currToken.value == "." || currToken.value == "[" ) {
+		while (currToken.value == "." || currToken.value == "[") {
 			if (currToken.value == ".") {
 				factor = [factor];
 				factor.unshift(".");
@@ -209,6 +247,8 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 		nextToken();
 	} else if (currToken.type == "operator" && currToken.value == "[") {
 		factor = parseList();
+	} else if (currToken.type == "operator" && currToken.value == "{") {
+		factor = parseDict();
 	}
 	return factor;
 }
@@ -249,7 +289,7 @@ function parseExpr() { //<expr> ::= <term> <expr_tail>
 
 function parseAssignmentStmt() {
 	var stmt = parseFactor();
-	if (currToken.value == "="){
+	if (currToken.value == "=") {
 		stmt = [stmt]
 		consume("=");
 		stmt.unshift("=")
@@ -267,12 +307,12 @@ function parseStatementList() {
 		case "identifier":
 		case "function":
 			// if (lookNextToken() == "=") // ��ֵ���?
-				stmt = parseAssignmentStmt();
+			stmt = parseAssignmentStmt();
 			// else if (lookNextToken() == "." || lookNextToken() == "(" || lookNextToken() == "[")
-				// stmt = parseFactor();
+			// stmt = parseFactor();
 			// else
-				// throw new Error("error in parseStatementList()")
-				break;
+			// throw new Error("error in parseStatementList()")
+			break;
 		case "number":
 			stmt = parseExpr();
 			break;
@@ -425,24 +465,48 @@ function execFunc(stmt) {
 	currFunc = funcCallStack[0] ? funcCallStack[0] : 0;
 }
 
-function execList(stmt) { // like "list" [+ 1 2] ["list" 2 3 ] [+ 3 4]
+function addType(id, type) {
+	if (type == "list")
+		id["type"] = "list";
+	else if (type == "tuple")
+		id["type"] = "tuple";
+	else if (type == "dict")
+		id["type"] = "dict";
+	else
+		id["type"] = "number";
+}
+
+function execList(stmt) { // list [1] [2] [3] [4]
 	var list = [];
 	var item = [];
-	if (!(stmt.length == 3 && stmt[1].length == 0)) {
-		for (var i = 1; i < stmt.length; i++) {
-			execExpression(stmt[i]);
-			list.push(stack.pop());
-		}
+	for (var i = 1; i < stmt.length; i++) {
+		execExpression(stmt[i]);
+		list.push(stack.pop());
 	}
+	addType(list, "list");
 	stack.push(list);
+}
+
+function execTuple(stmt) { // tuple [1] [2] [3] [4]
+	var tuple = [];
+	var item = [];
+	for (var i = 1; i < stmt.length; i++) {
+		execExpression(stmt[i]);
+		tuple.push(stack.pop());
+	}
+	addType(tuple, "tuple");
+	stack.push(tuple);
 }
 
 function calculate(expr, leftOperand, rightOperand) {
 	if (leftOperand instanceof Array) {
 		switch (expr[0]) {
 		case "+":
-			if (rightOperand instanceof Array)
-				stack.push(leftOperand.addList(rightOperand));
+			if (rightOperand instanceof Array){
+				var newList = leftOperand.addList(rightOperand);
+				newList["type"] = "list";
+				stack.push(newList);
+			}
 			else
 				throw new Error("Invalid operation of list" + expr[0]);
 			break;
@@ -452,6 +516,7 @@ function calculate(expr, leftOperand, rightOperand) {
 				for (var i = 0; i < rightOperand; i++) {
 					mulList = mulList.addList(leftOperand);
 				}
+				mulList["type"] = "list";
 				stack.push(mulList);
 			} else
 				throw new Error("Invalid operation of list" + expr[0]);
@@ -463,8 +528,11 @@ function calculate(expr, leftOperand, rightOperand) {
 	} else if (rightOperand instanceof Array) {
 		switch (expr[0]) {
 		case "+":
-			if (leftOperand instanceof Array)
-				stack.push(rightOperand.addList(leftOperand));
+			if (leftOperand instanceof Array){
+				var newList = rightOperand.addList(leftOperand);
+				newList["type"] = "list";
+				stack.push(newList);
+			}
 			else
 				throw new Error("Invalid operation of list" + expr[0]);
 			break;
@@ -474,6 +542,7 @@ function calculate(expr, leftOperand, rightOperand) {
 				for (var i = 0; i < leftOperand; i++) {
 					mulList = mulList.addList(rightOperand);
 				}
+				mulList["type"] = "list";
 				stack.push(mulList);
 			} else
 				throw new Error("Invalid operation of list" + expr[0]);
@@ -510,12 +579,16 @@ function execExpression(expr) {
 		execFunc(expr)
 	} else if (expr[0] == "list") {
 		execList(expr);
+	} else if (expr[0] == "tuple") {
+		execTuple(expr);
+	} else if (expr[0] == "dict") { //?
+		execDict(expr);
 	} else if (expr.length == 3) {
 		execExpression(expr[1]);
 		execExpression(expr[2]);
-		rightOperand = stack.pop()
-			leftOperand = stack.pop()
-			calculate(expr, leftOperand, rightOperand);
+		rightOperand = stack.pop();
+		leftOperand = stack.pop();
+		calculate(expr, leftOperand, rightOperand);
 	} else {
 		if (!isNaN(expr))
 			stack.push(expr);
@@ -533,22 +606,55 @@ function execExpression(expr) {
 	}
 }
 
-function execPrintList(out) {
+function execAssignment(stmt) {
+	execExpression(stmt[2]);
+	if (currFunc == 0) { //get the result as global variable
+		if (stmt[1][0] == "index") { // index x 0
+			execExpression(stmt[1][2]);
+			var index = stack.pop();
+			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
+				throw new Error("IndexError: list index " + index + " out of range");
+			identifierTable[stmt[1][1]]["value"][index] = stack.pop();
+		} else {
+			identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
+		}
+	} else {
+		if (stmt[1][0] == "index") { // index x 0
+			if (funcVariables[currFunc][stmt[1][1]]) {
+				execExpression(stmt[1][2]);
+				var index = stack.pop();
+				if (index > funcVariables[currFunc][stmt[1][1]].length - 1)
+					throw new Error("IndexError: list index " + index + " out of range");
+				funcVariables[currFunc][stmt[1][1]][index] = stack.pop(); //get the result as local variable
+			} else {
+				execExpression(stmt[1][2]);
+				var index = stack.pop();
+				if (index > identifierTable[stmt[1][1]]["value"].length - 1)
+					throw new Error("IndexError: list index " + index + " out of range");
+				identifierTable[stmt[1][1]]["value"] = stack.pop(); //get the result as global variable in a function
+			}
+		} else {
+			if (funcVariables[currFunc][stmt[1][0]]) {
+				funcVariables[currFunc][stmt[1][0]] = stack.pop(); //get the result as local variable
+			} else {
+				identifierTable[stmt[1][0]]["value"] = stack.pop(); //get the result as global variable in a function
+			}
+		}
+	}
+}
+
+function execPrintItem(out) {
 	var outStrItem = "";
 	if (out.length > 1) {
 		for (var i = 0; i < out.length - 1; i++) {
-			if (out[i] instanceof Array) {
-				outStrItem += "[";
-				outStrItem += execPrintList(out[i]);
-				outStrItem += "],";
+			if (out[i]instanceof Array) {
+				outStrItem += execPrintEnclosureLeft(out[i]["type"]) + execPrintItem(out[i]) + execPrintEnclosureRight(out[i]["type"]) + ", ";
 			} else {
 				outStrItem += out[i] + ", ";
 			}
 		}
 		if (out[out.length - 1]instanceof Array) {
-			outStrItem += "[";
-			outStrItem += execPrintList(out[i], outStr);
-			outStrItem += "]";
+			outStrItem += execPrintEnclosureLeft(out[i]["type"]) + execPrintItem(out[i]) + execPrintEnclosureRight(out[i]["type"]);
 		} else {
 			outStrItem += out[i];
 		}
@@ -558,15 +664,37 @@ function execPrintList(out) {
 	return outStrItem;
 }
 
+function execPrintEnclosureLeft(type) { // list tuple dict 左符号
+	if (type == "list") {
+		return "[";
+	} else if (type == "tuple") {
+		return "(";
+	} else if (type == "dict") {
+		return "{";
+	} else {
+		return "";
+	}
+}
+
+function execPrintEnclosureRight(type) { // list tuple dict 右符号
+	if (type == "list") {
+		return "]";
+	} else if (type == "tuple") {
+		return ")";
+	} else if (type == "dict") {
+		return "}";
+	} else {
+		return "";
+	}
+}
+
 function execPrint(out) {
 	var outStr = "";
-	if (out instanceof Array) {
-		outStr+="["
-	}
-	outStr += execPrintList(out);
-	if (out instanceof Array) {
-		outStr+="]";
-	}
+	if (out instanceof Array)
+		outStr += execPrintEnclosureLeft(out["type"]);
+	outStr += execPrintItem(out);
+	if (out instanceof Array)
+		outStr += execPrintEnclosureRight(out["type"]);
 	return outStr;
 }
 
@@ -574,27 +702,28 @@ function execStatement(stmt) {
 	var loopStatus = "normal";
 	// switch(stmt[0])
 	if (stmt[0] == "=") {
-		execExpression(stmt[2])
-		if (currFunc == 0) { //get the result as global variable
-			identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
-		} else {
-			if (funcVariables[currFunc][stmt[1][0]]) {
-				funcVariables[currFunc][stmt[1][0]] = stack.pop(); //get the result as local variable
-			} else
-				identifierTable[stmt[1][0]]["value"] = stack.pop(); //get the result as global variable in a function
-		}
+		execAssignment(stmt);
 	} else if (stmt[0] == "print") {
-		execExpression(stmt[1])
-		out = stack.pop();
-		outstr = execPrint(out);
-		document.getElementById("output_area").value += outstr + "\n";
-		// console.info("out:", outstr);
+		if (stmt[1][0] == "index") {
+			execExpression(stmt[1][2]);
+			var index = stack.pop();
+			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
+				throw new Error("IndexError: list index " + index + " out of range");
+			outstr = execPrint(identifierTable[stmt[1][1]]["value"][index]);
+			document.getElementById("output_area").value += outstr + "\n";
+		} else {
+			execExpression(stmt[1]);
+			out = stack.pop();
+			outstr = execPrint(out);
+			document.getElementById("output_area").value += outstr + "\n";
+			// console.info("out:", outstr);
+		}
 	} else if (stmt[0] == "if") { //if cond expr1 [elif expr] [else expr2]
 		var i = 1;
 		execCondition(stmt[i]);
 		while (!stack.pop()) {
 			i = i + 2;
-			if (i >= stmt.length)// has no 'else'
+			if (i >= stmt.length) // has no 'else'
 				return loopStatus;
 			if (stmt[i] == "else")
 				break;
@@ -640,11 +769,11 @@ function execStatementList(program) {
 	var loopStatus = "normal";
 	for (var i = 0; i < program.length; i++) {
 		loopStatus = execStatement(program[i]);
-		if (loopStatus == "break" && (program[i][0] == "while" || program[i][0] == "for")){
-			loopStatus = "normal";//reset the loopStatus
-			continue;// break to execute next statement after "while" or "for"
+		if (loopStatus == "break" && (program[i][0] == "while" || program[i][0] == "for")) {
+			loopStatus = "normal"; //reset the loopStatus
+			continue; // break to execute next statement after "while" or "for"
 		} else if (loopStatus == "continue" && program[i][0] == "if") {
-			return "normal";//execute the statement in first line of "whlie" or "for" normally
+			return "normal"; //execute the statement in first line of "whlie" or "for" normally
 		} else if (loopStatus == "continue" || loopStatus == "break") {
 			return loopStatus;
 		}
