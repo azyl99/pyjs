@@ -42,7 +42,7 @@ while x < 10 :
     x = x + 5
     print ( x )
   else : 
-    x = -1
+    x = -10
     print ( x )
     break
   endif
@@ -171,7 +171,7 @@ print ( x )
 x [ 1 + 1 ] = 10 / 20 - 2
 print ( x )
 
-# tuple
+# tuple 对内部数据赋值报错
 y = ( 1 , { 2 : 2 } , ( 3 , ) , [ 1 , 2 , 3 , 4 ] )
 print ( y )
 print ( y [ 3 ] )

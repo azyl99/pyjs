@@ -181,7 +181,7 @@ function parseDict() { // [= [x] [dict [1] [2] [3] [4]]]
 	if (currToken.type == "operator" && currToken.value == "{") {
 		dict.push("dict");
 		nextToken();
-		if (currToken.value != "}"){ //gmy4
+		if (currToken.value != "}"){
 			dict.push(parseExpr());
 			consume(":");
 			dict.push(parseExpr());
@@ -498,7 +498,7 @@ function execTuple(stmt) { // tuple [1] [2] [3] [4]
 	stack.push(tuple);
 }
 
-function execDict(stmt){ // dict [1] [2] [3] [4]  gmy2
+function execDict(stmt){ // dict [1] [2] [3] [4]
 	var dict = {};
 	for (var i = 1; i < stmt.length; i=i+2) {
 		execExpression(stmt[i]);
@@ -587,7 +587,7 @@ function calculate(expr, leftOperand, rightOperand) {
 }
 
 function execExpression(expr) {
-	if (expr instanceof Array && expr.length == 1 && expr[0] != "dict") { //gmy5
+	if (expr instanceof Array && expr.length == 1 && expr[0] != "dict") {
 		execExpression(expr[0]);
 	} else if (expr[0] == "function") {
 		execFunc(expr)
@@ -624,12 +624,12 @@ function execAssignment(stmt) {
 	execExpression(stmt[2]);
 	if (currFunc == 0) { //get the result as global variable
 		if (stmt[1][0] == "index") { // index x 0
-			if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")  // gmy1 2行
+			if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")
 				throw new Error("'tuple' object does not support item assignment");
 			execExpression(stmt[1][2]);
 			var index = stack.pop();
 			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
-				throw new Error("IndexError: list index " + index + " out of range");
+				throw new Error("IndexError: index " + index + " out of range");
 			identifierTable[stmt[1][1]]["value"][index] = stack.pop();
 		} else {
 			identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
@@ -711,7 +711,7 @@ function execPrintEnclosureRight(type) { // list tuple dict 右符号
 	}
 }
 
-function execPrint(out) { // gmy 3
+function execPrint(out) {
 	var outStr = "";
 	if (out.constructor == Object){  // [] instanceof array和object 都是true, 用constructor区分
 		outStr += execPrintEnclosureLeft(out["type"]);
@@ -743,7 +743,9 @@ function execStatement(stmt) {
 			execExpression(stmt[1][2]);
 			var index = stack.pop();
 			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
-				throw new Error("IndexError: list index " + index + " out of range");
+				throw new Error("IndexError: index " + index + " out of range");
+			if (!(index in identifierTable[stmt[1][1]]["value"]))
+				throw new Error("KeyError:  " + index );
 			outstr = execPrint(identifierTable[stmt[1][1]]["value"][index]);
 			document.getElementById("output_area").value += outstr + "\n";
 		} else {
