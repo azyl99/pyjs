@@ -5,7 +5,7 @@ var currToken = {
 }
 var currFunc = 0;
 var preFunc = 0;
-var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print", "def", "return", "break", "continue"]
+var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print", "def", "enddef", "return", "break", "continue", "class", "endclass"]
 var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]", "{", "}"]
 var identifierTable = new Array();
 var funcTable = []; //store the parse tree of functions
@@ -14,6 +14,8 @@ var funcCallStack = []; //store the function call sequence
 var funcVariables = []; //store the local variables of each function instance
 var funcParams = []; //store the parameters of each function
 var funcNum = 0;
+var curr_class_define = 0;
+var currClass = 0;
 
 function run() {
 	var inputstring = document.getElementById("input_area").value;
@@ -69,7 +71,6 @@ function lexer(inputstring) {
 
 ///parser
 function nextToken() {
-	// alert(currToken.value)
 	if (tokenList.length > 0) {
 		s = tokenList.shift();
 		if (keywords.indexOf(s) != -1) {
@@ -84,7 +85,9 @@ function nextToken() {
 		} else if (isVaildSymbol(s)) {
 			if (funcTable[s]) {
 				currToken.type = "function";
-			} else {
+			} else if(identifierTable[s] && identifierTable[s]["type"] == "class"){
+                currToken.type = "class"                
+            } else {
 				identifierTable[s] = new Array();
 				currToken.type = "identifier";
 			}
@@ -120,22 +123,98 @@ function consume(value) {
 	}
 }
 
-function parseFunction() { //used while calling a function
+function parseFunctionCall( x ) { //used while calling a function
 	var stmt = [];
-	stmt.push("function"); //an identifier - "function"
+    if( x == 0 )
+        stmt.push("function"); //an identifier - "function"
+    else
+        stmt.push("class")
 	var function_name = currToken.value; //the function name
 	stmt.push(function_name);
 	nextToken();
 	consume("(");
-	for (var i = 0; i < funcParams[function_name].length; i++) { //transfer the value of params
-		// var param_transfer = ["=", funcParams[function_name][i], parseExpr()]
-		var param_transfer = ["=", [funcParams[function_name][i]], parseExpr()]
-		stmt.push(param_transfer)
-		if (i != funcParams[function_name].length - 1)
-			consume(",")
-	}
+    while(currToken.value != ")"){
+        stmt.push(parseExpr())
+        if(currToken.value == ",")
+            consume(",")
+    }
 	consume(")");
 	return stmt;
+}
+
+function parseFunction(){
+    consume("def");
+    var function_name = currToken.value;
+    currToken.type = "function"
+    nextToken();
+    consume("(");
+    if(curr_class_define != 0){
+        if(function_name == "__init__"){
+            identifierTable[curr_class_define]["self"] = currToken.value        //store the self variable of a class
+        }
+        if(!identifierTable[curr_class_define]["function"])
+            identifierTable[curr_class_define]["function"] = []
+        if(identifierTable[curr_class_define]["function"].indexOf(function_name) == -1 ){
+            identifierTable[curr_class_define]["function"].push(function_name)
+        }
+        identifierTable[curr_class_define]["value"][function_name] = [];
+        identifierTable[curr_class_define]["value"][function_name]["params"] = [];
+        while (currToken.value != ")") {
+            identifierTable[curr_class_define]["value"][function_name]["params"].push(currToken.value) //store the parameters of the function in funcParams[function_name]
+            nextToken();
+            if (currToken.value == ",") {
+                consume(",")
+            }
+        }
+        consume(")");
+        consume(":");
+        identifierTable[curr_class_define]["value"][function_name]["type"] = "function";
+        identifierTable[curr_class_define]["value"][function_name]["value"] = [];
+        identifierTable[curr_class_define]["value"][function_name]["value"] = parseStatementList();
+    }
+    else{
+        funcParams[function_name] = [];
+        while (currToken.value != ")") {
+            funcParams[function_name].push(currToken.value) //store the parameters of the function in funcParams[function_name]
+            nextToken();
+            if (currToken.value == ",") {
+                consume(",")
+            }
+        }
+        consume(")");
+        consume(":");
+        funcTable[function_name] = [];
+        funcTable[function_name] = parseStatementList(); //generate a parse tree of the function and store in funcTable[function_name]
+    }
+    consume("enddef")
+}
+
+function parseClass(){
+    consume("class");
+    var class_name = currToken.value;
+    curr_class_define = class_name;
+    identifierTable[class_name]["value"] = [];
+    currToken.type = "class"
+    nextToken();
+    consume("(")
+    if (currToken.value != ")") {
+        var parent_name = currToken.value
+        identifierTable[class_name]["parent"] = parent_name;
+        identifierTable[class_name]["value"] = []
+        identifierTable[class_name]["function"] = []
+        for(var i = 0; i < identifierTable[parent_name]["function"].length; i++){
+            var function_name = identifierTable[parent_name]["function"][i]
+            identifierTable[class_name]["value"][function_name] = identifierTable[parent_name]["value"][function_name]
+            identifierTable[class_name]["function"].push(function_name)
+        }
+        nextToken()
+    }
+    consume(")");
+    consume(":");
+    identifierTable[class_name]["type"] = "class"
+    parseStatementList();
+    curr_class_define = 0;    
+    consume("endclass")
 }
 
 function parseList() { // <list> ::= "list" [<expr_list>]
@@ -213,9 +292,13 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 		consume(")");
 		// } else if (currToken.type == "function"){
 		// factor = parseFunction();
-	} else if (currToken.type == "identifier" || currToken.type == "function") { //"object"|"function"
-		if (currToken.type == "function") {
-			factor = parseFunction();
+	} else if (currToken.type == "identifier" || currToken.type == "function" || currToken.type == "class") { //"object"|"function"
+		if (lookNextToken(1) == "(") {
+            if(identifierTable[currToken.value] && identifierTable[currToken.value]["type"] == "class"){
+                factor = parseFunctionCall(1);
+            } else{
+                factor = parseFunctionCall(0);
+            }			
 		} else {
 			factor = [currToken.value];
 			nextToken();
@@ -225,8 +308,8 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 				factor = [factor];
 				factor.unshift(".");
 				consume(".");
-				if (currToken.type == "function") { //f.g()
-					factor.push(parseFunction())
+				if (lookNextToken(1) == "(") { //f.g()
+					factor.push(parseFunctionCall(0))
 				} else { //f.x
 					factor.push(currToken.value);
 					nextToken();
@@ -382,30 +465,18 @@ function parseStatementList() {
 				stmt = ["break"];
 				break;
 			case "def": //define a function
-				consume("def");
-				var function_name = currToken.value;
-				currToken.type = "function"
-					nextToken();
-				consume("(");
-				funcParams[function_name] = [];
-				while (currToken.value != ")") {
-					funcParams[function_name].push(currToken.value) //store the parameters of the function in funcParams[function_name]
-					nextToken();
-					if (currToken.value == ",") {
-						consume(",")
-					}
-				}
-				consume(")");
-				consume(":");
-				funcTable[function_name] = [];
-				funcTable[function_name] = parseStatementList(); //generate a parse tree of the function and store in funcTable[function_name]
-				// alert(funcTable[function_name])
+				parseFunction();
 				break;
+             case "class":
+                parseClass();
+                break;
 			case "endif":
 			case "endwhile":
 			case "endfor":
 			case "else":
 			case "elif":
+            case "enddef":
+            case "endclass":
 			case ".":
 				loop = false;
 				break;
@@ -413,7 +484,6 @@ function parseStatementList() {
 				stmt.push("return")
 				consume("return")
 				stmt.push(parseExpr());
-				loop = false;
 				break;
 			default:
 				break;
@@ -448,23 +518,88 @@ function parseCondition() { // leftexpr op rightexpr
 ///Interpreter
 
 function execFunc(stmt) {
-	preFunc = currFunc;
-	var function_name = stmt[1] + ":" + funcNum++; //create a new function instance
-	funcVariables[function_name] = [];
-	funcCallStack.unshift(function_name)
-	currFunc = function_name;
-	if (funcParams[currFunc.split(":")[0]].length > 0) { //tranfser parameter value
-		for (var i = 0; i < funcParams[currFunc.split(":")[0]].length; i++) {
-			currFunc = preFunc;
-			execExpression(stmt[i + 2][2]);
-			currFunc = funcCallStack[0]
-				funcVariables[currFunc][funcParams[currFunc.split(":")[0]][i]] = stack.pop()
-		}
-	}
-	execStatementList(funcTable[currFunc.split(":")[0]]); //excute the function accoording to the parse tree store in funcTable[function_name]
-	funcVariables[currFunc] = [];
-	funcCallStack.shift()
-	currFunc = funcCallStack[0] ? funcCallStack[0] : 0;
+    if(currClass != 0){
+        preFunc = currFunc;
+        var function_name = stmt[1] + ":" + funcNum++; //create a new function instance
+        funcVariables[function_name] = [];
+        funcCallStack.unshift(function_name)
+        currFunc = function_name;
+        if( stmt[0]["value"])
+            var function_addr = stmt[0]["value"][stmt[1]];
+        else
+            var function_addr = stmt[0][stmt[1]];
+        funcVariables[currFunc][function_addr["params"][0]] = stmt[0];
+        if (function_addr["params"].length > 0) { //tranfser parameter value
+            for (var i = 1; i < function_addr["params"].length; i++) {
+                currFunc = preFunc;
+                execExpression(stmt[i + 1]);
+                currFunc = funcCallStack[0]
+                funcVariables[currFunc][function_addr["params"][i]] = stack.pop()
+            }
+        }
+        execStatementList(function_addr["value"]); //excute the function accoording to the parse tree store in funcTable[function_name]
+        funcVariables[currFunc] = [];
+        funcCallStack.shift()
+        currFunc = funcCallStack[0] ? funcCallStack[0] : 0;
+    }
+    else{
+        preFunc = currFunc;
+        var function_name = stmt[1] + ":" + funcNum++; //create a new function instance
+        funcVariables[function_name] = [];
+        funcCallStack.unshift(function_name)
+        currFunc = function_name;
+        if (funcParams[currFunc.split(":")[0]].length > 0) { //tranfser parameter value
+            for (var i = 0; i < funcParams[currFunc.split(":")[0]].length; i++) {
+                currFunc = preFunc;
+                execExpression(stmt[i + 2]);
+                currFunc = funcCallStack[0]
+                funcVariables[currFunc][funcParams[currFunc.split(":")[0]][i]] = stack.pop()
+            }
+        }
+        execStatementList(funcTable[currFunc.split(":")[0]]); //excute the function accoording to the parse tree store in funcTable[function_name]
+        funcVariables[currFunc] = [];
+        funcCallStack.shift()
+        currFunc = funcCallStack[0] ? funcCallStack[0] : 0;
+    }
+}
+
+function execClass(stmt) {
+    var class_name = stmt[1]
+    preFunc = currFunc;
+    var function_name = class_name + ":" + "__init__" + funcNum++; //create a new function instance
+    funcVariables[function_name] = [];
+    funcCallStack.unshift(function_name)
+    currFunc = function_name;
+    if (identifierTable[class_name]["value"]["__init__"]) { //tranfser parameter value
+        if (identifierTable[class_name]["value"]["__init__"]["params"].length > 1){
+            for (var i = 1; i < identifierTable[class_name]["value"]["__init__"]["params"].length; i++) {
+                currFunc = preFunc;
+                execExpression(stmt[i + 1]);
+                currFunc = funcCallStack[0]
+                funcVariables[function_name][identifierTable[class_name]["value"]["__init__"]["params"][i]] = stack.pop()
+            }
+        }
+    }
+    var object = [];
+    object["class"] = class_name
+    if (identifierTable[class_name]["value"]["__init__"]){       
+        var stmt = identifierTable[class_name]["value"]["__init__"]["value"];
+        for(var i = 0; i < stmt.length; i++){
+            var param_name = stmt[i][1][2]
+            object[param_name] = []
+            object[param_name]["value"] = funcVariables[function_name][stmt[i][2]]
+            object[param_name]["type"] = "variable"
+        }
+    }
+    
+    for(var i = 0; i < identifierTable[class_name]["function"].length; i++){
+        var function_name = identifierTable[class_name]["function"][i]
+        object[function_name] = identifierTable[class_name]["value"][function_name]
+    }
+    stack.push(object)
+    funcVariables[currFunc] = [];
+    funcCallStack.shift()
+    currFunc = funcCallStack[0] ? funcCallStack[0] : 0;
 }
 
 function addType(id, type) {
@@ -589,9 +724,17 @@ function calculate(expr, leftOperand, rightOperand) {
 function execExpression(expr) {
 	if (expr instanceof Array && expr.length == 1 && expr[0] != "dict") {
 		execExpression(expr[0]);
-	} else if (expr[0] == "function") {
+	} else if (expr[0] == "."){
+        var result = execDotExpr(expr)
+        if(result["value"])
+            stack.push(result["value"])
+        else 
+            stack.push(result)
+    } else if (expr[0] == "function") {
 		execFunc(expr)
-	} else if (expr[0] == "list") {
+	} else if (expr[0] == "class"){
+        execClass(expr)
+    } else if (expr[0] == "list") {
 		execList(expr);
 	} else if (expr[0] == "tuple") {
 		execTuple(expr);
@@ -620,43 +763,83 @@ function execExpression(expr) {
 	}
 }
 
+function execDotExpr(expr){
+    var i = 0;
+    var result;
+    while(expr[i] == ".")
+        i++;
+    if(currFunc == 0){
+        result = identifierTable[expr[i]]
+    }
+    else{
+        result = funcVariables[currFunc][expr[i]]
+    }
+    for(i = i + 1;i<expr.length; i++){
+        if(expr[i][0] == "function"){
+            if(expr[i][1][0] == "_" && expr[i][1][1] == "_" && currClass != result["value"]["class"]){
+                throw new Error("illegal access to private variable");
+            }
+            var func = expr[i]
+            expr[i][0] = result //function, transfer the object addr, function name and params
+            if(result["value"])
+                currClass = result["value"]["class"]
+            else
+                currClass = result["class"]
+            execFunc(expr[i])
+            currClass = 0
+            result = stack.pop()
+        }
+        else{
+            if(expr[i][0] == "_" && expr[i][1] == "_" && currClass != result["value"]["class"]){
+                throw new Error("illegal access to private variable");
+            }else{
+                if(result["value"])
+                    result = result["value"][expr[i]]
+                else
+                    result = result[expr[i]]
+            }
+        }
+
+    }
+    return result
+}
+
 function execAssignment(stmt) {
-	execExpression(stmt[2]);
-	if (currFunc == 0) { //get the result as global variable
-		if (stmt[1][0] == "index") { // index x 0
-			if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")
-				throw new Error("'tuple' object does not support item assignment");
-			execExpression(stmt[1][2]);
-			var index = stack.pop();
-			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
-				throw new Error("IndexError: index " + index + " out of range");
-			identifierTable[stmt[1][1]]["value"][index] = stack.pop();
-		} else {
-			identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
-		}
-	} else {
-		if (stmt[1][0] == "index") { // index x 0
-			if (funcVariables[currFunc][stmt[1][1]]) {
-				execExpression(stmt[1][2]);
-				var index = stack.pop();
-				if (index > funcVariables[currFunc][stmt[1][1]].length - 1)
-					throw new Error("IndexError: list index " + index + " out of range");
-				funcVariables[currFunc][stmt[1][1]][index] = stack.pop(); //get the result as local variable
-			} else {
-				execExpression(stmt[1][2]);
-				var index = stack.pop();
-				if (index > identifierTable[stmt[1][1]]["value"].length - 1)
-					throw new Error("IndexError: list index " + index + " out of range");
-				identifierTable[stmt[1][1]]["value"] = stack.pop(); //get the result as global variable in a function
-			}
-		} else {
-			if (funcVariables[currFunc][stmt[1][0]]) {
-				funcVariables[currFunc][stmt[1][0]] = stack.pop(); //get the result as local variable
-			} else {
-				identifierTable[stmt[1][0]]["value"] = stack.pop(); //get the result as global variable in a function
-			}
-		}
-	}
+    execExpression(stmt[2]);
+    if (stmt[1][0] == "."){
+        var left_operand = execDotExpr(stmt[1])
+        left_operand["value"] = stack.pop()    
+    } else if (currFunc == 0) { //get the result as global variable
+        if (stmt[1][0] == "index") { // index x 0
+            if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")
+                throw new Error("'tuple' object does not support item assignment");
+            execExpression(stmt[1][2]);
+            var index = stack.pop();
+            if (index > identifierTable[stmt[1][1]]["value"].length - 1)
+                throw new Error("IndexError: index " + index + " out of range");
+            identifierTable[stmt[1][1]]["value"][index] = stack.pop();
+        } else {
+            identifierTable[stmt[1][0]]["value"] = stack.pop(); //??[1][0]
+        }
+    } else {
+        if (stmt[1][0] == "index") { // index x 0
+            if (funcVariables[currFunc][stmt[1][1]]) {
+                execExpression(stmt[1][2]);
+                var index = stack.pop();
+                if (index > funcVariables[currFunc][stmt[1][1]].length - 1)
+                    throw new Error("IndexError: list index " + index + " out of range");
+                funcVariables[currFunc][stmt[1][1]][index] = stack.pop(); //get the result as local variable
+            } else {
+                execExpression(stmt[1][2]);
+                var index = stack.pop();
+                if (index > identifierTable[stmt[1][1]]["value"].length - 1)
+                    throw new Error("IndexError: list index " + index + " out of range");
+                identifierTable[stmt[1][1]]["value"] = stack.pop(); //get the result as global variable in a function
+            }
+        } else {
+            funcVariables[currFunc][stmt[1][0]] = stack.pop(); //get the result as local variable
+        }
+    }
 }
 
 function execPrintItem(out) {
@@ -786,9 +969,13 @@ function execStatement(stmt) {
 			stack.pop();
 			execCondition(stmt[2]);
 		}
-	} else if (stmt[0] == "function") {
+	} else if(stmt[0] == "."){
+        execDotExpr(stmt)
+    } else if (stmt[0] == "function") {
 		execFunc(stmt)
-	} else if (stmt[0] == "return") {
+	} else if (stmt[0] == "class"){
+        execClass(stmt)
+    } else if (stmt[0] == "return") {
 		execExpression(stmt[1])
 	} else if (stmt[0] == "continue") {
 		loopStatus = "continue";
