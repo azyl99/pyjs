@@ -524,11 +524,11 @@ function execFunc(stmt) {
         funcVariables[function_name] = [];
         funcCallStack.unshift(function_name)
         currFunc = function_name;
-        if( stmt[0]["value"])
-            var function_addr = stmt[0]["value"][stmt[1]];
+        if( stmt[stmt.length-1]["value"])
+            var function_addr = stmt[stmt.length-1]["value"][stmt[1]];
         else
-            var function_addr = stmt[0][stmt[1]];
-        funcVariables[currFunc][function_addr["params"][0]] = stmt[0];
+            var function_addr = stmt[stmt.length-1][stmt[1]];
+        funcVariables[currFunc][function_addr["params"][0]] = stmt[stmt.length-1];
         if (function_addr["params"].length > 0) { //tranfser parameter value
             for (var i = 1; i < function_addr["params"].length; i++) {
                 currFunc = preFunc;
@@ -740,7 +740,7 @@ function execExpression(expr) {
 		execTuple(expr);
 	} else if (expr[0] == "dict") { //?
 		execDict(expr);
-	} else if (expr.length == 3) {
+	} else if (expr instanceof Array && expr.length == 3) {
 		execExpression(expr[1]);
 		execExpression(expr[2]);
 		rightOperand = stack.pop();
@@ -780,7 +780,7 @@ function execDotExpr(expr){
                 throw new Error("illegal access to private variable");
             }
             var func = expr[i]
-            expr[i][0] = result //function, transfer the object addr, function name and params
+            expr[i].push(result) //function, transfer the object addr, function name and params
             if(result["value"])
                 currClass = result["value"]["class"]
             else

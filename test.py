@@ -275,11 +275,24 @@ class Cat ( Animal ) :
     enddef
 endclass
 
+animal = Animal ( 10 )
 dog = Dog ( 4 )
 cat = Cat ( 5 , 6 )
 dog . f ( )
-dog . run ( )
 cat . f ( )
+dog . run ( )
 cat . run ( )
 print ( dog . name )
 print ( cat . hobby )
+
+def run ( animal ) :
+    animal . run ( )
+enddef
+
+run ( animal )
+run ( dog )
+run ( cat )
+
+
+
+
