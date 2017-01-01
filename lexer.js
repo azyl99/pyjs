@@ -15,10 +15,8 @@ var linesNum;
 var operator=["<=",">=","==","!=","&&","||","+=","-=","*=","/="];
 var TokenType=["spli","oper","single","num","str"];
 var indentKey=["if","while","for","def","class"];
-var tokenList;
 
-function lexer() {//对程序进行词法分析，生成tokenlist
-    var inputString=document.getElementById("input").value;
+function lexer(inputString) {//对程序进行词法分析，生成tokenlist
     var handleString = addSplit(inputString);  //为某一个token加上间隔符；
     var testString = "";
     var testLinesNum;
@@ -66,11 +64,6 @@ function lexer() {//对程序进行词法分析，生成tokenlist
             tokenList.push([currentToken[0],currentToken[1]]);
         }
     }
-    num=tokenList.length;
-    for(i=0;i<num;i++){
-        testString += tokenList[i][0] +'\n'+tokenList[i][1]+'\n';
-    }
-    document.getElementById("output").value = testString;
 }
 
 function indent(start,last) {  //处理缩进，if,for,while 加end ,start数组第一个元素为等价空格数，第二个为字符数
@@ -81,6 +74,10 @@ function indent(start,last) {  //处理缩进，if,for,while 加end ,start数组
     try {
         while (nextStart[0] >= start[0]) {
             if(lines[linesIndex]==""){
+                if(linesIndex==linesNum-1){
+                    nextStart=[-1,-1];
+                    break;
+                }
                 calBlankNum(lines[linesIndex]);
             }
             if (nextStart[0] == start[0]) {

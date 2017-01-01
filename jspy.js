@@ -29,7 +29,7 @@ function test() {
 	document.getElementById("output_area").value = "";
 	// try {
 	// console.log(inputstring);
-	tokenList = lexer(inputstring);
+    lexer(inputstring);
 	// console.log(tokenList);
 	nextToken();
 	program = parseStatementList();
@@ -64,15 +64,16 @@ function programToString(program) {
 }
 
 ///lexer
-function lexer(inputstring) {
+/*function lexer(inputstring) {
 	var i = 1;
 	return inputstring.split(/\s+/);
-}
+}*/
 
 ///parser
 function nextToken() {
 	if (tokenList.length > 0) {
-		s = tokenList.shift();
+		ss = tokenList.shift();
+        s = ss[0]
 		if (keywords.indexOf(s) != -1) {
 			currToken.type = "keyword";
 			currToken.value = s;
@@ -106,7 +107,7 @@ function nextToken() {
 
 function lookNextToken(cnt) {
 	if (tokenList.length > cnt - 1) {
-		return tokenList[cnt - 1];
+		return tokenList[cnt - 1][0];
 	}
 	return "";
 }
