@@ -53,22 +53,7 @@ var test_function2 = `def fc(x):
 b=fc(9)
 print(b)`
 
-var test_class1 = `class Student():
-  __init__(self,name,school):
-    self.__name=name
-    self.school=school
-  def f(self,x):
-    print(self.__name)
-    print(x)
-    return "f() finished"
-  def __f(self):
-    print(1)
-bart=Student("bart","ZJU")
-print(bart.f("is a student"))
-x=bart.school
-print(x)
-bart.school="ABC"
-print(bart.school)`
+var test_class1 = ``
 
 var test_class2 = `class Animal():
   def __init__(self,name):
