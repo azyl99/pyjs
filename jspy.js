@@ -673,7 +673,7 @@ function calculate(expr, leftOperand, rightOperand) {
 				stack.push(newList);
 			}
 			else
-				throw new Error("Invalid operation of list" + expr[0]);
+				throw new Error("Invalid operation " + expr[0]);
 			break;
 		case "*":
 			if (Number.isInteger(rightOperand)) {
@@ -684,10 +684,10 @@ function calculate(expr, leftOperand, rightOperand) {
 				mulList["type"] = "list";
 				stack.push(mulList);
 			} else
-				throw new Error("Invalid operation of list" + expr[0]);
+				throw new Error("Invalid operation " + expr[0]);
 			break;
 		default:
-			throw new Error("Invalid operation of list" + expr[0]);
+			throw new Error("Invalid operation " + expr[0]);
 			break;
 		}
 	} else if (rightOperand instanceof Array) {
@@ -699,7 +699,7 @@ function calculate(expr, leftOperand, rightOperand) {
 				stack.push(newList);
 			}
 			else
-				throw new Error("Invalid operation of list" + expr[0]);
+				throw new Error("Invalid operation " + expr[0]);
 			break;
 		case "*":
 			if (Number.isInteger(leftOperand)) {
@@ -710,10 +710,10 @@ function calculate(expr, leftOperand, rightOperand) {
 				mulList["type"] = "list";
 				stack.push(mulList);
 			} else
-				throw new Error("Invalid operation of list" + expr[0]);
+				throw new Error("Invalid operation " + expr[0]);
 			break;
 		default:
-			throw new Error("Invalid operation of list" + expr[0]);
+			throw new Error("Invalid operation " + expr[0]);
 			break;
 		}
 	} else {
@@ -757,7 +757,9 @@ function execExpression(expr) {
 	} else if (expr[0] == "tuple") {
 		execTuple(expr);
 	} else if (expr[0] == "string") {
-		str = "" + expr[1][0];
+		str = [];
+		str.push(expr[1][0]);
+		str["type"] = "string";
 		stack.push(str);
 	} else if (expr instanceof Array && expr.length == 3) {
 		execExpression(expr[1]);
@@ -794,7 +796,9 @@ function execDotExpr(expr){
         result = funcVariables[currFunc][expr[i]]
     }
     for(i = i + 1;i<expr.length; i++){
-        if(expr[i][0] == "function"){
+		if (result["value"]["type"] == "list" && expr[i][1] == "toSet"){
+			result["value"] = result["value"].unique();
+		} else if(expr[i][0] == "function"){
             if(expr[i][1][0] == "_" && expr[i][1][1] == "_" && currClass != result["value"]["class"]){
                 throw new Error("illegal access to private variable");
             }
@@ -832,6 +836,8 @@ function execAssignment(stmt) {
         if (stmt[1][0] == "index") { // index x 0
             if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")
                 throw new Error("'tuple' object does not support item assignment");
+			if ( identifierTable[stmt[1][1]]["value"]["type"] == "string")
+                throw new Error("'string' object does not support item assignment");
             execExpression(stmt[1][2]);
             var index = stack.pop();
             if (index > identifierTable[stmt[1][1]]["value"].length - 1)
@@ -843,12 +849,20 @@ function execAssignment(stmt) {
     } else {
         if (stmt[1][0] == "index") { // index x 0
             if (funcVariables[currFunc][stmt[1][1]]) {
+				if ( funcVariables[currFunc][stmt[1][1]]["type"] == "tuple")
+					throw new Error("'tuple' object does not support item assignment");
+				if ( funcVariables[currFunc][stmt[1][1]]["type"] == "string")
+					throw new Error("'string' object does not support item assignment");
                 execExpression(stmt[1][2]);
                 var index = stack.pop();
                 if (index > funcVariables[currFunc][stmt[1][1]].length - 1)
                     throw new Error("IndexError: list index " + index + " out of range");
                 funcVariables[currFunc][stmt[1][1]][index] = stack.pop(); //get the result as local variable
             } else {
+				if ( identifierTable[stmt[1][1]]["value"]["type"] == "tuple")
+					throw new Error("'tuple' object does not support item assignment");
+				if ( identifierTable[stmt[1][1]]["value"]["type"] == "string")
+                throw new Error("'string' object does not support item assignment");
                 execExpression(stmt[1][2]);
                 var index = stack.pop();
                 if (index > identifierTable[stmt[1][1]]["value"].length - 1)
@@ -946,11 +960,17 @@ function execStatement(stmt) {
 		if (stmt[1][0] == "index") {
 			execExpression(stmt[1][2]);
 			var index = stack.pop();
-			if (index > identifierTable[stmt[1][1]]["value"].length - 1)
-				throw new Error("IndexError: index " + index + " out of range");
-			if (!(index in identifierTable[stmt[1][1]]["value"]))
-				throw new Error("KeyError:  " + index );
-			outstr = execPrint(identifierTable[stmt[1][1]]["value"][index]);
+			if (identifierTable[stmt[1][1]]["value"]["type"] == "string"){
+				if (index > identifierTable[stmt[1][1]]["value"][0].length - 1)
+					throw new Error("IndexError: index " + index + " out of range");
+				outstr = identifierTable[stmt[1][1]]["value"][0].substring(index, index+1);
+			} else {
+				if (index > identifierTable[stmt[1][1]]["value"].length - 1)
+					throw new Error("IndexError: index " + index + " out of range");
+				if (!(index in identifierTable[stmt[1][1]]["value"]))
+					throw new Error("KeyError:  " + index );
+				outstr = execPrint(identifierTable[stmt[1][1]]["value"][index]);
+			}
 			document.getElementById("output_area").value += outstr + "\n";
 		} else {
 			execExpression(stmt[1]);

@@ -174,6 +174,11 @@ print ( ( x + [ 2 ] ) * 2 )
 print ( x * 3 + [ 2 ] * 3 )
 print ( x * 3 * 3 )
 
+# list . 操作 现在只能toSet
+abc = [ 1 , 2 , 3 , 1 , 2 , 3 ]
+abc . toSet ( )
+print ( abc )
+
 # list 取下表，越界报错
 x = [ 1 , [ 2 , [ 3 , 4 , 5 ] ] , [ 6 , 7 ] ]
 print ( x )
@@ -193,6 +198,10 @@ print ( y )
 print ( x [ " ab " ] )
 x [ 1 ] = 0
 print ( x )
+
+#string
+abc = " abcdefg "
+print ( abc [ 2 ] )
 
 #类
 #成员变量&成员函数的调用&赋值       
