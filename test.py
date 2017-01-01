@@ -186,11 +186,11 @@ print ( y )
 print ( y [ 3 ] )
 
 # dict
-x = { 1 : [ 1 , { 2 : 3 } ] , 3 : ( 3 , 4 ) }
+x = { " ab " : [ 1 , { 2 : 3 } ] , 1 : ( 3 , 4 ) }
 print ( x )
 y = { }
 print ( y )
-print ( x [ 1 ] )
+print ( x [ " ab " ] )
 x [ 1 ] = 0
 print ( x )
 
@@ -252,16 +252,16 @@ class Animal ( ) :
         self . name = name
     enddef
     def f ( ) :
-        print ( 0 )
+        print ( " f() " )
     enddef
     def run ( self ) :
-        print ( 1 )
+        print ( " animal " )
     enddef
 endclass
 
 class Dog ( Animal ) :
     def run ( self ) :
-        print ( 2 )
+        print ( " dog " )
     enddef
 endclass
 
@@ -271,7 +271,7 @@ class Cat ( Animal ) :
         self . hobby = hobby
     enddef
     def run ( self ) :
-        print ( 3 )
+        print ( " cat " )
     enddef
 endclass
 

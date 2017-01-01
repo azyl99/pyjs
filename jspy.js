@@ -6,7 +6,7 @@ var currToken = {
 var currFunc = 0;
 var preFunc = 0;
 var keywords = ["while", "endwhile", "if", "else", "elif", "for", "endfor", "endif", "print", "def", "enddef", "return", "break", "continue", "class", "endclass"]
-var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]", "{", "}"]
+var operators = ["=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%", "(", ")", ":", ",", ";", ".", "[", "]", "{", "}","'","\""]
 var identifierTable = new Array();
 var funcTable = []; //store the parse tree of functions
 var stack = [];
@@ -82,7 +82,10 @@ function nextToken() {
 		} else if (!isNaN(s)) {
 			currToken.type = "number";
 			currToken.value = Number(s);
-		} else if (isVaildSymbol(s)) {
+		} else if((lookNextToken(1) == "\""||lookNextToken(1) == "'")){
+            currToken.type = "string";
+			currToken.value = s;			
+        } else if (isVaildSymbol(s)) {
 			if (funcTable[s]) {
 				currToken.type = "function";
 			} else if(identifierTable[s] && identifierTable[s]["type"] == "class"){
@@ -282,7 +285,7 @@ function parseDict() { // [= [x] [dict [1] [2] [3] [4]]]
 	return dict;
 }
 
-function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | function | class.member | class.method() | arr[expr]
+function parseFactor() { //<factor> ::= ( <expr> ) | identifier | string | list | tuple | dict | number | function | class.member | class.method() | arr[expr]
 	var factor = [];
 	if (currToken.type == "operator" && currToken.value == "(") {
 		nextToken();
@@ -334,6 +337,19 @@ function parseFactor() { //<factor> ::= ( <expr> ) | identifier | number | funct
 		factor = parseList();
 	} else if (currToken.type == "operator" && currToken.value == "{") {
 		factor = parseDict();
+	} else if (currToken.type == "operator" && currToken.value == "\"" ) {
+		consume("\"");
+		factor.push("string");
+		var str = [currToken.value];
+		factor.push(str);
+		nextToken();
+		consume("\"");
+	} else if (currToken.type == "operator" && currToken.value == "'" ) {
+		consume("'");
+		factor.push("string");
+		factor.push(currToken.value);
+		nextToken();
+		consume("'");
 	}
 	return factor;
 }
@@ -722,7 +738,9 @@ function calculate(expr, leftOperand, rightOperand) {
 }
 
 function execExpression(expr) {
-	if (expr instanceof Array && expr.length == 1 && expr[0] != "dict") {
+	if (expr[0] == "dict") {
+		execDict(expr);
+	} else if (expr instanceof Array && expr.length == 1) {
 		execExpression(expr[0]);
 	} else if (expr[0] == "."){
         var result = execDotExpr(expr)
@@ -738,8 +756,9 @@ function execExpression(expr) {
 		execList(expr);
 	} else if (expr[0] == "tuple") {
 		execTuple(expr);
-	} else if (expr[0] == "dict") { //?
-		execDict(expr);
+	} else if (expr[0] == "string") {
+		str = "" + expr[1][0];
+		stack.push(str);
 	} else if (expr instanceof Array && expr.length == 3) {
 		execExpression(expr[1]);
 		execExpression(expr[2]);
@@ -896,7 +915,9 @@ function execPrintEnclosureRight(type) { // list tuple dict 右符号
 
 function execPrint(out) {
 	var outStr = "";
-	if (out.constructor == Object){  // [] instanceof array和object 都是true, 用constructor区分
+	if (typeof out === 'string')
+		outStr += out;
+	else if (out.constructor == Object){  // [] instanceof array和object 都是true, 用constructor区分
 		outStr += execPrintEnclosureLeft(out["type"]);
 		// outStr += execPrintDict(out);
 		for (var i in out){
