@@ -149,11 +149,11 @@ print ( b )
 
 
 #成员函数
-def ga ( x , n ) :
-    s = 1
-    return s 
-enddef
-x = ( 1 + obj1 . obj2 . ga ( 1 , 2 ) . t ) * ( ga ( 1 , 2 ) + 2 )
+# def ga ( x , n ) :
+    # s = 1
+    # return s 
+# enddef
+# x = ( 1 + obj1 . obj2 . ga ( 1 , 2 ) . t ) * ( ga ( 1 , 2 ) + 2 )
 
 #下标运算符合成员函数的混合调用
 def gb ( x , n ) :
@@ -174,10 +174,21 @@ print ( ( x + [ 2 ] ) * 2 )
 print ( x * 3 + [ 2 ] * 3 )
 print ( x * 3 * 3 )
 
-# list . 操作 现在只能toSet
-abc = [ 1 , 2 , 3 , 1 , 2 , 3 ]
-abc . toSet ( )
-print ( abc )
+# list . 操作 toSet, count(i), copy, append(i), reverse, clear
+list = [ 1 , 2 , 3 , 1 , 2 , 3 ]
+c = list . copy ( )
+print ( c )
+set = list . toSet ( )
+print ( list )
+print ( set )
+list . append ( { 1 : 23 } )
+print ( list )
+list . reverse ( )
+print ( list )
+print ( list . count ( 1 ) )
+print ( list )
+list . clear ( )
+print ( list )
 
 # list 取下表，越界报错
 x = [ 1 , [ 2 , [ 3 , 4 , 5 ] ] , [ 6 , 7 ] ]
@@ -301,7 +312,3 @@ enddef
 run ( animal )
 run ( dog )
 run ( cat )
-
-
-
-

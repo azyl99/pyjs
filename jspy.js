@@ -796,8 +796,37 @@ function execDotExpr(expr){
         result = funcVariables[currFunc][expr[i]]
     }
     for(i = i + 1;i<expr.length; i++){
-		if (result["value"]["type"] == "list" && expr[i][1] == "toSet"){
-			result["value"] = result["value"].unique();
+		if (result["value"] && result["value"]["type"] == "list" ){ // && expr[i][1] == "toSet"
+			switch(expr[i][1]){
+				case "append":
+					execExpression(expr[i][2]);
+					result["value"].push(stack.pop());
+					break;
+				case "reverse":
+					result["value"].reverse();
+					break;
+				case "clear":
+					result["value"].clear();
+					break;
+				case "count":
+					execExpression(expr[i][2]);
+					result = result["value"].count(stack.pop());
+					break;
+				case "copy":
+					var tmp = [];
+					tmp["value"] = result["value"].copy();
+					tmp["value"]["type"] = "list";
+					result = tmp;
+					break;
+				case "toSet":
+					var tmp = [];
+					tmp["value"] = result["value"].unique();
+					tmp["value"]["type"] = "list";
+					result = tmp;
+					break;	
+				default :
+					throw new Error("undefined method of list");
+			}
 		} else if(expr[i][0] == "function"){
             if(expr[i][1][0] == "_" && expr[i][1][1] == "_" && currClass != result["value"]["class"]){
                 throw new Error("illegal access to private variable");
