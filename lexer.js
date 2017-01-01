@@ -6,6 +6,7 @@
  *lexer函数运行完毕tokenlist即被赋值,调用时只需lexer(inputString)即可
  *数字负数、小数均支持（类调用时'.'会分隔出来成为一个单独的token）
  *字符串目前只支持''和"",尚未支持多行字符串，字符串的内容里不可出现单引号和双引号，此外一切均支持，包括转义字符
+ *支持单行注释
  *  */
 var linesIndex;
 var lines;
@@ -14,8 +15,10 @@ var linesNum;
 var operator=["<=",">=","==","!=","&&","||","+=","-=","*=","/="];
 var TokenType=["spli","oper","single","num","str"];
 var indentKey=["if","while","for","def","class"];
+var tokenList;
 
-function lexer(inputString) {//对程序进行词法分析，生成tokenlist
+function lexer() {//对程序进行词法分析，生成tokenlist
+    var inputString=document.getElementById("input").value;
     var handleString = addSplit(inputString);  //为某一个token加上间隔符；
     var testString = "";
     var testLinesNum;
@@ -29,7 +32,7 @@ function lexer(inputString) {//对程序进行词法分析，生成tokenlist
     linesIndex = 0;
     indent([0,0],[-1,-1]);
     testLinesNum=lines.length;
-    tokenlist = [];
+    tokenList = [];
     for(linesIndex = 0; linesIndex<testLinesNum; linesIndex++){
         lineContent = lines[linesIndex];
         currentToken[0]="";
@@ -37,21 +40,21 @@ function lexer(inputString) {//对程序进行词法分析，生成tokenlist
         for(i = 0; i<lineContent.length; i++){
             if(splitChar.test(lineContent[i]) && strSign == 0){
                 if(currentToken[0] != ""){
-                    tokenlist.push([currentToken[0],currentToken[1]]);
+                    tokenList.push([currentToken[0],currentToken[1]]);
                     currentToken[0]="";
                 }
             }
             else if(lineContent[i] == '\'' || lineContent[i] == '\"' && strSign ==0){
                 if(currentToken[0] != ""){
-                    tokenlist.push([currentToken[0],currentToken[1]]);
+                    tokenList.push([currentToken[0],currentToken[1]]);
                 }
                 currentToken[0] = lineContent[i];
-                tokenlist.push([currentToken[0],currentToken[1]]);
+                tokenList.push([currentToken[0],currentToken[1]]);
                 currentToken[0]="";
                 strSign = 1;
             }
             else if(lineContent[i] == '\'' || lineContent[i] == '\"' && strSign ==1){
-                tokenlist.push([currentToken[0],currentToken[1]]);
+                tokenList.push([currentToken[0],currentToken[1]]);
                 currentToken[0] = lineContent[i];
                 strSign = 0;
             }
@@ -60,17 +63,26 @@ function lexer(inputString) {//对程序进行词法分析，生成tokenlist
             }
         }
         if(currentToken[0]!=""){
-            tokenlist.push([currentToken[0],currentToken[1]]);
+            tokenList.push([currentToken[0],currentToken[1]]);
         }
     }
+    num=tokenList.length;
+    for(i=0;i<num;i++){
+        testString += tokenList[i][0] +'\n'+tokenList[i][1]+'\n';
+    }
+    document.getElementById("output").value = testString;
 }
 
 function indent(start,last) {  //处理缩进，if,for,while 加end ,start数组第一个元素为等价空格数，第二个为字符数
     var currentKey = "", nextStart, nextIndentStart;
     var firstToken,firstToken2;
+    var modifyline;
     nextStart = start;
     try {
         while (nextStart[0] >= start[0]) {
+            if(lines[linesIndex]==""){
+                calBlankNum(lines[linesIndex]);
+            }
             if (nextStart[0] == start[0]) {
                 firstToken = getStartOfline(lines[linesIndex].substring(nextStart[1]));
                 if (indentKey.indexOf(firstToken) != -1) {
@@ -104,14 +116,14 @@ function indent(start,last) {  //处理缩进，if,for,while 加end ,start数组
                             firstToken2="";
                         }
                     }
+                    modifyline = lines[linesIndex-1] + " end" + firstToken;
                     if(linesIndex == linesNum){
-                        lines.push("end" + firstToken);
+                        lines.pop();
+                        lines.push(modifyline);
                     }
                     else{
-                        lines.splice(linesIndex, 0, "end" + firstToken);
+                        lines.splice(linesIndex-1,1,modifyline);
                     }
-                    linesIndex++;
-                    linesNum++;
                 }
                 else {
                     linesIndex++;
@@ -119,11 +131,11 @@ function indent(start,last) {  //处理缩进，if,for,while 加end ,start数组
                 if (linesIndex >= linesNum) {
                     break;
                 }
-                nextStart = calBlankNum(lines[linesIndex]);
             }
             else {
                 throw new Error("indent error");
             }
+            nextStart = calBlankNum(lines[linesIndex]);
         }
         if (linesIndex < linesNum && nextStart[0] > last[0]) {
             throw new Error("indent error");
@@ -136,6 +148,9 @@ function indent(start,last) {  //处理缩进，if,for,while 加end ,start数组
 function calBlankNum(str){
     var len=str.length;
     var num = 0;
+    if(str == ""){
+        return calBlankNum(lines[++linesIndex]);
+    }
     for(var i = 0; i<len; i++){
         if(str[i] == " "){
             num++;
@@ -189,12 +204,17 @@ function addSplit(inputString){
         type: TokenType[0],
         content: ""
     };
-    var strcount;
     var strSign = 0;
     for (var i = 0; i < len; i++ ) {  //
         currentChar = checkType(inputString[i]);
         if(inputString[i]!= '\'' && inputString[i] !='\"' && strSign == 1 ){
             currentToken.type=TokenType[4];
+            handleString += inputString[i];
+        }
+        else if(inputString[i]=='#'){
+            while(inputString[i]!='\n'){
+                i++;
+            }
             handleString += inputString[i];
         }
         else if(currentChar==0){
