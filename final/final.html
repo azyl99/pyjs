@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>final</title>
+<link rel="stylesheet" href="css/codemirror.css">
+<link rel="stylesheet" href="css/duotone-light.css">
+<script src="js/codemirror.js"></script>
+<script src="js/closebrackets.js"></script>
+<script src="js/python.js"></script>
+<script src="js/testcode.js"></script>
+<script src="js/lexer.js"></script>
+<script src="js/jspy.js"></script>
+<script src="js/list.js"></script>
+<style type="text/css">
+.header {
+	border-bottom: 3px solid #ccc;
+	padding: 10px;
+	text-align: center;
+	font-size: 300%;
+	font-weight: 900;
+}
+#main {
+	padding: 0px 0px 0px 0px;
+}
+#index,#input,#output{
+	display: table-cell;
+}
+#index {
+	position:relative;
+	width: 180px;
+	border-right: 1px solid #ccc;
+}
+#input {
+	width: 600px;
+	max-width: 550px;
+	padding: 10px 30px;
+}
+#output {
+	width: 500px;
+	padding: 10px;
+}
+
+.textbox{
+	border: 1px solid #ccc;
+}
+h3 {
+	/*text-align: center;*/
+}
+li {
+	list-style-type:none;
+}
+button{
+	background-color:transparent;
+	border:0px;
+	font-size: 110%;
+}
+#run button {
+	font-weight: bold;
+	font-size: 125%;
+}
+#run {	
+	position:absolute;/*absolute: 参照位置是离当前元素最近的定位方式为fixed,absolute,relative的祖先*/
+	bottom:0px;
+}
+.CodeMirror{
+	border: 1px solid #eee;
+	height: 480px;
+	font-size: 13pt;
+}
+</style>
+</head>
+<body>
+<div class="header">
+	Welcome to JsPy!
+</div>
+<div id="main">
+	<div id="index">
+		<ul>
+		<h3>示例代码</h3>
+		<li><button onclick="editor1.getDoc().setValue(test_basic);">基本</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_if);">if</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_while);">while</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_for);">for</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_list);">list</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_tuple);">tuple</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_function1);">函数1</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_function2);">函数2</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_class1);">类1</button></li>
+		<li><button onclick="editor1.getDoc().setValue(test_class2);">类2</button></li>
+		</ul>
+		<div id="run">
+			<ul>
+			<li><button onclick="run();">运行</button></li>
+			<li><button onclick="editor1.getDoc().setValue('');editor2.getDoc().setValue('');">清空</button></li>
+			</ul>
+		</div>
+	</div>
+	<div id="input">
+		<h3>Python代码</h3>
+		<div class="textbox"><textarea id="code1" name="code1"></textarea></div>
+	</div>
+	<div id="output">
+		<h3>运行结果</h3>
+		<div class="textbox"><textarea id="code2" name="code2"></textarea></div>
+	</div>
+</div>
+</body>
+
+<script>
+  var editor1 = CodeMirror.fromTextArea(document.getElementById("code1"), {
+    lineNumbers: true,
+    matchBrackets: true,
+    styleActiveLine: true,
+    lineWrapping: true,//文本过长是否折行，默认是false(scroll)
+	theme: "duotone-light",
+	mode: {
+		name: "python",
+		version: 3,
+	},
+	autoCloseBrackets: true,
+  });
+  var editor2 = CodeMirror.fromTextArea(document.getElementById("code2"), {
+    matchBrackets: true,
+    styleActiveLine: true,
+    lineWrapping: false,
+	theme: "duotone-light",
+	readOnly: true,
+  });
+</script>
+</html>
