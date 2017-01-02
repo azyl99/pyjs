@@ -462,17 +462,30 @@ function parseStatementList() {
 			case "for":
 				consume("for");
 				stmt = ["for"];
-				if (currToken.value != ";")
-					stmt.push(parseAssignmentStmt()); //simple assignment statement. To be modified
-				consume(";")
-				if (currToken.value != ";")
-					stmt.push(parseCondition());
-				consume(";");
-				stmt.push(parseAssignmentStmt());
-				consume(":");
-				stmt.push(parseStatementList());
-				consume("endfor");
-				break;
+				if (lookNextToken(1) == "in") {
+					stmt = ["forin"];
+					stmt.push([currToken.value]);
+					nextToken();
+					consume("in");
+					stmt.push(currToken.value);
+					nextToken();
+					consume(":");
+					stmt.push(parseStatementList());
+					consume("endfor");
+					break;
+				} else {
+					if (currToken.value != ";")
+						stmt.push(parseAssignmentStmt()); //simple assignment statement. To be modified
+					consume(";")
+					if (currToken.value != ";")
+						stmt.push(parseCondition());
+					consume(";");
+					stmt.push(parseAssignmentStmt());
+					consume(":");
+					stmt.push(parseStatementList());
+					consume("endfor");
+					break;
+				}
 			case "continue":
 				consume("continue");
 				stmt = ["continue"];
@@ -1040,7 +1053,18 @@ function execStatement(stmt) {
 			stack.pop();
 			execCondition(stmt[2]);
 		}
-	} else if(stmt[0] == "."){
+	} else if(stmt[0] == "forin"){// forin [x] lista stmt
+		var mIdentifier = stmt[1][0];// stmt[1]:["x"]
+		var mList = identifierTable[stmt[2]]["value"];// [1,2,3]
+		identifierTable[mIdentifier] = [];
+		identifierTable[mIdentifier]["value"] = 0;
+		for (var i = 0; i < mList.length; i++) {
+			identifierTable[mIdentifier]["value"] = mList[i];
+			execStatementList(stmt[3]);
+			if (loopStatus == "break")
+				return loopStatus;
+		}
+    } else if(stmt[0] == "."){
         execDotExpr(stmt)
     } else if (stmt[0] == "function") {
 		execFunc(stmt)
@@ -1064,7 +1088,7 @@ function execStatementList(program) {
 	var loopStatus = "normal";
 	for (var i = 0; i < program.length; i++) {
 		loopStatus = execStatement(program[i]);
-		if (loopStatus == "break" && (program[i][0] == "while" || program[i][0] == "for")) {
+		if (loopStatus == "break" && (program[i][0] == "while" || program[i][0] == "for" || program[i][0] == "forin")) {
 			loopStatus = "normal"; //reset the loopStatus
 			continue; // break to execute next statement after "while" or "for"
 		} else if (loopStatus == "continue" && program[i][0] == "if") {

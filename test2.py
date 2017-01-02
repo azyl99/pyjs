@@ -27,6 +27,15 @@ for i=0; i<5; i=i+1:
   x=x+1
 print(x)
 
+#for in
+list=[1,2,3]
+list2 = []
+for x in list:
+  if x == 3:
+    break
+  list2.append(x)
+print(list2)
+
 #while里面嵌套if
 x=1
 while x<10:
