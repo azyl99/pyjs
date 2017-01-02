@@ -30,7 +30,28 @@ while x<10:
   print(x)`;
   
 
-var test_for = ``
+var test_forin = `list=[1,2,3]
+list2 = []
+for x in list:
+  if x == 3:
+    break
+  list2.append(x)
+print(list2)`
+
+var test_forex = `for x=1; x<10; x=x:
+  if x==1:
+    x=x+2
+    print(x)
+    continue
+  elif x==3:
+    x=x+5
+    print(x)
+  else: 
+    x=-1
+    print(x)
+    break
+  x=x+1
+  print(x)`
 
 var test_function1 = `x = 1
 y = 2
