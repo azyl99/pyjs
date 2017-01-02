@@ -112,6 +112,55 @@ run(animal)
 run(dog)
 run(cat)`
 	
-test_list = ``
+test_list1 = `# 赋值
+x=[[1/2,100],(2,3),{4:5},4]
+print(x)
+x[1+1]=10/20-2
+print(x)
 
-test_tuple = ``
+# list + *
+print([])
+x=[1,2]
+print(x)
+print((x+[2])*2)
+print(x*3+[2]*3)
+print(x*3*3)`
+
+test_list2 = `#list的其他操作
+list=[1,2,3,1,2,3]
+print(list)
+# append
+list.append({1:23})
+print(list)
+# reverse
+list.reverse()
+print(list)
+# count
+print(list.count(1))
+# copy
+c=list.copy()
+print(c)
+# toSet
+s=list.toSet()
+print(s)
+# clear
+list.clear()
+print(list)`
+
+test_tuple = `# tuple
+y=(1,{2:2},(3,),[1,2,3,4])
+print(y)
+
+print(y[3])
+
+# dictionary
+y={}
+print(y)
+
+x={"name":"jspy","hello":"world"}
+print(x)
+
+print(x["name"])
+
+x["abc"]="abc"
+print(x)`
