@@ -640,6 +640,8 @@ function addType(id, type) {
 function execList(stmt) { // list [1] [2] [3] [4]
 	var list = [];
 	for (var i = 1; i < stmt.length; i++) {
+		if(stmt[i].length == 0) 
+			continue;
 		execExpression(stmt[i]);
 		list.push(stack.pop());
 	}
